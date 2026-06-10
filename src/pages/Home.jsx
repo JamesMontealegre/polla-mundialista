@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  collection, query, where, getDocs, addDoc, doc, getDoc, serverTimestamp
+  collection, query, where, getDocs, addDoc, doc, getDoc, deleteDoc, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
@@ -18,6 +18,8 @@ export default function Home() {
   const [showCreate, setShowCreate] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [deletingGroupId, setDeletingGroupId] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchGroups()
@@ -90,6 +92,36 @@ export default function Home() {
       }
     }
     setCreating(false)
+  }
+
+  async function deleteGroup(groupId) {
+    setDeleting(true)
+    try {
+      // 1. Borrar predicciones del grupo
+      const predsSnap = await getDocs(
+        query(collection(db, 'predictions'), where('groupId', '==', groupId))
+      )
+      await Promise.all(predsSnap.docs.map(d => deleteDoc(d.ref)))
+
+      // 2. Borrar miembros del grupo
+      const membersSnap = await getDocs(
+        query(collection(db, 'groupMembers'), where('groupId', '==', groupId))
+      )
+      await Promise.all(membersSnap.docs.map(d => deleteDoc(d.ref)))
+
+      // 3. Borrar el grupo
+      await deleteDoc(doc(db, 'groups', groupId))
+
+      setGroups(prev => prev.filter(g => g.id !== groupId))
+      setDeletingGroupId(null)
+    } catch (err) {
+      console.error('Error eliminando grupo:', err)
+      if (err?.code === 'permission-denied' || err?.message?.includes('Missing or insufficient permissions')) {
+        handlePermissionError()
+        return
+      }
+    }
+    setDeleting(false)
   }
 
   return (
@@ -173,24 +205,61 @@ export default function Home() {
           ) : (
             <div className="space-y-3">
               {groups.map(group => (
-                <button
-                  key={group.id}
-                  onClick={() => navigate(`/group/${group.id}`)}
-                  className="w-full bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-wc-green rounded-xl p-4 text-left transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-white font-bold">{group.name}</div>
-                      <div className="text-gray-400 text-xs mt-0.5">
-                        Código: <span className="text-wc-gold font-mono font-bold">{group.inviteCode}</span>
-                        {group.adminIds?.includes(user.uid) && (
-                          <span className="ml-2 text-wc-green">⭐ Admin</span>
-                        )}
+                <div key={group.id} className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden transition-all hover:border-wc-green">
+                  {deletingGroupId === group.id ? (
+                    <div className="p-4 border-l-4 border-red-600">
+                      <p className="text-gray-300 text-sm mb-1">¿Eliminar el grupo <span className="text-white font-bold">{group.name}</span>?</p>
+                      <p className="text-red-400 text-xs mb-3">Se borrarán todos los miembros y predicciones. Esta acción no se puede deshacer.</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setDeletingGroupId(null)}
+                          disabled={deleting}
+                          className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 text-xs font-semibold"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => deleteGroup(group.id)}
+                          disabled={deleting}
+                          className="flex-1 py-2 rounded-lg bg-red-700 text-white text-xs font-bold hover:bg-red-600 disabled:opacity-50"
+                        >
+                          {deleting ? 'Eliminando...' : 'Sí, eliminar grupo'}
+                        </button>
                       </div>
                     </div>
-                    <div className="text-gray-500 text-lg">›</div>
-                  </div>
-                </button>
+                  ) : (
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => navigate(`/group/${group.id}`)}
+                        className="flex-1 p-4 text-left hover:bg-gray-800 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-white font-bold">{group.name}</div>
+                            <div className="text-gray-400 text-xs mt-0.5">
+                              Código: <span className="text-wc-gold font-mono font-bold">{group.inviteCode}</span>
+                              {group.adminIds?.includes(user.uid) && (
+                                <span className="ml-2 text-wc-green">⭐ Admin</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-gray-500 text-lg">›</div>
+                        </div>
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => setDeletingGroupId(group.id)}
+                          className="px-3 py-4 text-gray-600 hover:text-red-400 transition-colors border-l border-gray-800"
+                          title="Eliminar grupo"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}

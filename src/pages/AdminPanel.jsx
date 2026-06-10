@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { doc, setDoc, getDoc, getDocs, collection } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
-import { MATCHES, STAGE_NAMES, FLAGS, hasMatchStarted } from '../data/matches'
+import { MATCHES, STAGE_NAMES, FLAGS, ALL_TEAMS, hasMatchStarted } from '../data/matches'
 
 function formatDate(dateStr) {
   const date = new Date(dateStr)
@@ -224,6 +224,11 @@ export default function AdminPanel() {
               const result = matchResults[match.id]
               const hasResult = result?.isFinished
               const started = hasMatchStarted(match)
+              const isKnockout = match.stage !== 'group'
+              // Use Firestore-stored team names if available, otherwise use static data
+              const displayTeam1 = result?.team1 || match.team1
+              const displayTeam2 = result?.team2 || match.team2
+              const teamsAssigned = displayTeam1 !== 'Por definir' && displayTeam2 !== 'Por definir'
 
               return (
                 <div
@@ -240,8 +245,8 @@ export default function AdminPanel() {
                         {' '}{formatDate(match.date)}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <span className="text-lg">{FLAGS[match.team1] || '🏳️'}</span>
-                        <span className="text-white font-semibold truncate max-w-[90px]">{match.team1}</span>
+                        <span className="text-lg">{FLAGS[displayTeam1] || '🏳️'}</span>
+                        <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam1}</span>
                         {hasResult ? (
                           <span className="text-wc-gold font-black text-base">
                             {result.team1Goals} - {result.team2Goals}
@@ -249,8 +254,8 @@ export default function AdminPanel() {
                         ) : (
                           <span className="text-gray-500 font-bold">vs</span>
                         )}
-                        <span className="text-white font-semibold truncate max-w-[90px]">{match.team2}</span>
-                        <span className="text-lg">{FLAGS[match.team2] || '🏳️'}</span>
+                        <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam2}</span>
+                        <span className="text-lg">{FLAGS[displayTeam2] || '🏳️'}</span>
                       </div>
                     </div>
 
@@ -266,7 +271,7 @@ export default function AdminPanel() {
                       )}
                       {started ? (
                         <button
-                          onClick={() => startEdit(match)}
+                          onClick={() => startEdit({ ...match, team1: displayTeam1, team2: displayTeam2 })}
                           className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
                             hasResult
                               ? 'bg-gray-700 text-wc-gold hover:bg-gray-600'
@@ -285,6 +290,68 @@ export default function AdminPanel() {
                       )}
                     </div>
                   </div>
+
+                  {/* Knockout team assignment */}
+                  {isKnockout && !teamsAssigned && (
+                    <div className="mt-3 pt-3 border-t border-gray-800">
+                      <div className="text-xs text-yellow-400 font-semibold mb-2">Asignar equipos:</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={displayTeam1 === 'Por definir' ? '' : displayTeam1}
+                          onChange={e => updateKnockoutTeam(match.id, 'team1', e.target.value || 'Por definir')}
+                          className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+                        >
+                          <option value="">Equipo 1...</option>
+                          {ALL_TEAMS.map(t => (
+                            <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={displayTeam2 === 'Por definir' ? '' : displayTeam2}
+                          onChange={e => updateKnockoutTeam(match.id, 'team2', e.target.value || 'Por definir')}
+                          className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+                        >
+                          <option value="">Equipo 2...</option>
+                          {ALL_TEAMS.map(t => (
+                            <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show edit option for already-assigned knockout teams */}
+                  {isKnockout && teamsAssigned && !hasResult && (
+                    <div className="mt-2 pt-2 border-t border-gray-800">
+                      <details className="group">
+                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-300 select-none">
+                          Cambiar equipos
+                        </summary>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <select
+                            value={displayTeam1}
+                            onChange={e => updateKnockoutTeam(match.id, 'team1', e.target.value || 'Por definir')}
+                            className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+                          >
+                            <option value="">Equipo 1...</option>
+                            {ALL_TEAMS.map(t => (
+                              <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={displayTeam2}
+                            onChange={e => updateKnockoutTeam(match.id, 'team2', e.target.value || 'Por definir')}
+                            className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+                          >
+                            <option value="">Equipo 2...</option>
+                            {ALL_TEAMS.map(t => (
+                              <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </details>
+                    </div>
+                  )}
                 </div>
               )
             })}

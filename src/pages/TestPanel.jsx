@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { calculatePoints } from '../utils/scoring'
-import { FLAGS } from '../data/matches'
+import { FLAGS, ALL_TEAMS, STAGE_NAMES } from '../data/matches'
 import MatchCard from '../components/MatchCard'
 import PredictionModal from '../components/PredictionModal'
 
@@ -82,6 +82,165 @@ function createTestMatch(minutesFromNow) {
     group: 'D',
     matchday: 1,
   }
+}
+
+function TeamAssignmentTest() {
+  const [team1, setTeam1] = useState('')
+  const [team2, setTeam2] = useState('')
+  const [assignedMatch, setAssignedMatch] = useState(null)
+
+  const knockoutStages = ['r32', 'r16', 'qf', 'sf', '3rd', 'final']
+  const [testStage, setTestStage] = useState('r32')
+
+  const testMatch = useMemo(() => {
+    const date = new Date(Date.now() + 60 * 60 * 1000)
+    return {
+      id: 'test-knockout',
+      team1: team1 || 'Por definir',
+      team2: team2 || 'Por definir',
+      date: date.toISOString(),
+      city: 'Ciudad de prueba',
+      stage: testStage,
+      matchNum: 73,
+    }
+  }, [team1, team2, testStage])
+
+  // Validation tests
+  const validationResults = useMemo(() => {
+    const tests = [
+      {
+        label: 'ALL_TEAMS contiene 48 selecciones',
+        passed: ALL_TEAMS.length === 48,
+        detail: `${ALL_TEAMS.length} equipos encontrados`,
+      },
+      {
+        label: 'Todos los equipos tienen bandera',
+        passed: ALL_TEAMS.every(t => FLAGS[t] != null),
+        detail: ALL_TEAMS.filter(t => !FLAGS[t]).join(', ') || 'Todas asignadas',
+      },
+      {
+        label: 'No hay equipos duplicados',
+        passed: new Set(ALL_TEAMS).size === ALL_TEAMS.length,
+        detail: `${new Set(ALL_TEAMS).size} únicos de ${ALL_TEAMS.length}`,
+      },
+      {
+        label: 'Equipos ordenados alfabéticamente (es)',
+        passed: ALL_TEAMS.every((t, i) => i === 0 || t.localeCompare(ALL_TEAMS[i - 1], 'es') >= 0),
+        detail: ALL_TEAMS.slice(0, 3).join(', ') + '...',
+      },
+      {
+        label: 'STAGE_NAMES contiene Dieciseisavos',
+        passed: STAGE_NAMES.r32 === 'Dieciseisavos de Final',
+        detail: `r32 = "${STAGE_NAMES.r32}"`,
+      },
+    ]
+    return tests
+  }, [])
+
+  const allPassed = validationResults.every(t => t.passed)
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-white font-bold text-lg">4. Asignacion de Equipos (Knockout)</h2>
+        <span className={`text-sm font-bold px-3 py-1 rounded-full ${
+          allPassed ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
+        }`}>
+          {allPassed ? `✅ ${validationResults.length}/${validationResults.length} OK` : `❌`}
+        </span>
+      </div>
+
+      {/* Automated validations */}
+      <div className="space-y-2 mb-6">
+        {validationResults.map((test, i) => (
+          <div
+            key={i}
+            className={`bg-gray-900 rounded-lg border p-3 flex items-center justify-between gap-3 ${
+              test.passed ? 'border-green-800' : 'border-red-700'
+            }`}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-white text-sm font-semibold">{test.label}</div>
+              <div className="text-gray-400 text-xs mt-0.5">{test.detail}</div>
+            </div>
+            <div className={`text-sm font-bold ${test.passed ? 'text-green-400' : 'text-red-400'}`}>
+              {test.passed ? '✅' : '❌'}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Interactive team selector test */}
+      <div className="bg-gray-900 rounded-xl border border-gray-700 p-4 space-y-4">
+        <h3 className="text-white font-bold text-sm">Simulador de asignacion</h3>
+        <p className="text-gray-400 text-xs">
+          Selecciona equipos de la lista para simular la asignacion de un partido eliminatorio.
+        </p>
+
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {knockoutStages.map(s => (
+            <button
+              key={s}
+              onClick={() => setTestStage(s)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                testStage === s ? 'bg-wc-gold text-wc-dark' : 'bg-gray-800 text-gray-300'
+              }`}
+            >
+              {STAGE_NAMES[s]}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Equipo 1</label>
+            <select
+              value={team1}
+              onChange={e => setTeam1(e.target.value)}
+              className="w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+            >
+              <option value="">Por definir</option>
+              {ALL_TEAMS.map(t => (
+                <option key={t} value={t}>{FLAGS[t]} {t}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Equipo 2</label>
+            <select
+              value={team2}
+              onChange={e => setTeam2(e.target.value)}
+              className="w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+            >
+              <option value="">Por definir</option>
+              {ALL_TEAMS.filter(t => t !== team1).map(t => (
+                <option key={t} value={t}>{FLAGS[t]} {t}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div>
+          <h4 className="text-gray-400 text-xs mb-2 font-semibold uppercase">Preview de la card:</h4>
+          <div className="max-w-sm">
+            <MatchCard
+              match={testMatch}
+              prediction={null}
+              onPredict={team1 && team2 ? () => {} : null}
+              onReset={() => {}}
+            />
+          </div>
+        </div>
+
+        <div className="text-xs text-gray-500 space-y-1">
+          <p>• El boton "Predecir" solo aparece cuando ambos equipos estan asignados.</p>
+          <p>• El selector del admin filtra el equipo ya seleccionado como rival.</p>
+          <p>• Las banderas se muestran automaticamente basadas en el nombre del equipo.</p>
+        </div>
+      </div>
+    </section>
+  )
 }
 
 export default function TestPanel() {
@@ -349,9 +508,12 @@ export default function TestPanel() {
           )}
         </section>
 
-        {/* 4. RULES REFERENCE */}
+        {/* 4. TEAM ASSIGNMENT TEST */}
+        <TeamAssignmentTest />
+
+        {/* 5. RULES REFERENCE */}
         <section>
-          <h2 className="text-white font-bold text-lg mb-4">4. Reglas de Puntuacion</h2>
+          <h2 className="text-white font-bold text-lg mb-4">5. Reglas de Puntuacion</h2>
           <div className="bg-gray-900 rounded-xl border border-gray-700 p-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-300">Marcador exacto</span>

@@ -48,10 +48,14 @@ service cloud.firestore {
     }
 
     // Predicciones — cada usuario escribe las suyas, todos en el grupo pueden leer
+    // Admin del grupo puede borrar predicciones (para limpieza al eliminar grupo)
     match /predictions/{predId} {
       allow read: if isAuth();
       allow create, update: if isAuth() && request.resource.data.uid == request.auth.uid;
-      allow delete: if isAuth() && resource.data.uid == request.auth.uid;
+      allow delete: if isAuth() && (
+        resource.data.uid == request.auth.uid ||
+        get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.adminIds.hasAny([request.auth.uid])
+      );
     }
   }
 }

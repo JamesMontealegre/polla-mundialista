@@ -57,7 +57,7 @@ export default function MatchCard({
     pointsResult = calculatePoints(prediction, { team1Goals: match.team1Goals, team2Goals: match.team2Goals })
   }
 
-  const isPDef = match.team1 === 'Por definir'
+  const isPDef = match.team1 === 'Por definir' || match.team2 === 'Por definir'
 
   // Formato del countdown mm:ss
   const countdownLabel = timeLeft != null && timeLeft > 0 && timeLeft <= 300

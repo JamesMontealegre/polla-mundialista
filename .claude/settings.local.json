@@ -6,7 +6,8 @@
       "Bash(firebase deploy --only firestore:rules --project polla-mundialista-2026-46348)",
       "Bash(npx vite build)",
       "Bash(firebase deploy --only firestore:rules)",
-      "Bash(firebase projects:list)"
+      "Bash(firebase projects:list)",
+      "Bash(npm run build)"
     ]
   }
 }

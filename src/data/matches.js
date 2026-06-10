@@ -198,13 +198,16 @@ export const MATCHES = [
 
 export const STAGE_NAMES = {
   group: 'Fase de Grupos',
-  r32: 'Ronda de 32',
+  r32: 'Dieciseisavos de Final',
   r16: 'Octavos de Final',
   qf: 'Cuartos de Final',
   sf: 'Semifinales',
   '3rd': 'Tercer Puesto',
   final: 'Final',
 }
+
+// Lista de las 48 selecciones del Mundial 2026
+export const ALL_TEAMS = Object.values(GROUPS).flatMap(g => g.teams).sort((a, b) => a.localeCompare(b, 'es'))
 
 // Verifica si un partido ya comenzó (en hora Colombia)
 export function hasMatchStarted(match) {
