@@ -160,7 +160,10 @@ export default function PredictionModal({ match, existing, onSave, onClose }) {
         {/* Scoring info */}
         <div className="bg-gray-800 rounded-lg p-3 mb-4 text-xs text-gray-400 space-y-1">
           {predType === 'score' ? (
-            <div className="flex justify-between"><span>🎯 Marcador exacto = +3 pts · Resultado acertado = +1 pt</span></div>
+            <>
+              <div className="flex justify-between"><span>🎯 Aciertas el marcador exacto</span><span className="text-green-400 font-bold">+3 pts</span></div>
+              <div className="flex justify-between"><span>✅ Aciertas gana/pierde/empata</span><span className="text-wc-gold font-bold">+1 pt</span></div>
+            </>
           ) : (
             <div className="flex justify-between"><span>✅ Aciertas gana/pierde/empata</span><span className="text-wc-gold font-bold">+1 pt</span></div>
           )}
