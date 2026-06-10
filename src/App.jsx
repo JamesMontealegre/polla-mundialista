@@ -7,6 +7,7 @@ import Home from './pages/Home'
 import GroupPage from './pages/GroupPage'
 import JoinGroup from './pages/JoinGroup'
 import AdminPanel from './pages/AdminPanel'
+import TestPanel from './pages/TestPanel'
 
 function Layout({ children }) {
   return (
@@ -40,6 +41,11 @@ export default function App() {
         <Route path="/admin" element={
           <ProtectedRoute adminOnly>
             <Layout><AdminPanel /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/test" element={
+          <ProtectedRoute adminOnly>
+            <Layout><TestPanel /></Layout>
           </ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
