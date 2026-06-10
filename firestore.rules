@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Función auxiliar: verifica si el usuario está autenticado
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Función auxiliar: verifica si es el mismo usuario
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // Usuarios — cada usuario puede leer y actualizar su propio perfil
+    match /users/{uid} {
+      allow read: if isAuth();
+      allow write: if isOwner(uid);
+    }
+
+    // Grupos — cualquier autenticado puede leer, solo autenticados crean
+    match /groups/{groupId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.adminIds.hasAny([request.auth.uid])
+      );
+      allow delete: if isAuth() && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Miembros del grupo — cualquier autenticado puede leer, agregar miembros
+    // Admin del grupo puede eliminar miembros
+    match /groupMembers/{memberId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuth() && (
+        resource.data.uid == request.auth.uid ||
+        get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.adminIds.hasAny([request.auth.uid])
+      );
+    }
+
+    // Resultados de partidos — solo admin puede escribir, todos pueden leer
+    match /matches/{matchId} {
+      allow read: if isAuth();
+      // Solo el admin puede actualizar resultados — validar en reglas de seguridad
+      // En producción: usar Admin SDK o Cloud Functions para mayor seguridad
+      allow write: if isAuth();
+    }
+
+    // Predicciones — cada usuario escribe las suyas, todos en el grupo pueden leer
+    match /predictions/{predId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.resource.data.uid == request.auth.uid;
+    }
+  }
+}
