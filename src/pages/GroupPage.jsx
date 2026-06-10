@@ -321,7 +321,7 @@ export default function GroupPage() {
             <div>
               <h1 className="text-2xl font-black text-white">{group.name}</h1>
               <div className="text-gray-400 text-sm mt-1">
-                {members.length} participante{members.length !== 1 ? 's' : ''}
+                {members.filter(m => !(group?.adminIds || []).includes(m.uid)).length} participante{members.filter(m => !(group?.adminIds || []).includes(m.uid)).length !== 1 ? 's' : ''}
               </div>
             </div>
             <button
