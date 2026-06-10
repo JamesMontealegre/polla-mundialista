@@ -422,7 +422,7 @@ export default function GroupPage() {
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {[
                 { key: 'group', label: 'Grupos' },
-                { key: 'r32', label: 'R32' },
+                { key: 'r32', label: '16vos' },
                 { key: 'r16', label: '8vos' },
                 { key: 'qf', label: '4tos' },
                 { key: 'sf', label: 'Semi' },
