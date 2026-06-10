@@ -209,8 +209,10 @@ export const STAGE_NAMES = {
 // Verifica si un partido ya comenzó (en hora Colombia)
 export function hasMatchStarted(match) {
   const matchDate = new Date(match.date)
+  // Cerrar predicciones 5 minutos antes del inicio
+  const cutoff = new Date(matchDate.getTime() - 5 * 60 * 1000)
   const now = new Date()
-  return now >= matchDate
+  return now >= cutoff
 }
 
 // Determina el ganador de un marcador

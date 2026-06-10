@@ -3,7 +3,8 @@
     "allow": [
       "Bash(firebase --version)",
       "Bash(npx firebase-tools --version)",
-      "Bash(firebase deploy --only firestore:rules --project polla-mundialista-2026-46348)"
+      "Bash(firebase deploy --only firestore:rules --project polla-mundialista-2026-46348)",
+      "Bash(npx vite build)"
     ]
   }
 }

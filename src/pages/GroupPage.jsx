@@ -27,6 +27,7 @@ export default function GroupPage() {
   const [loading, setLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState(null)
   const [activeTab, setActiveTab] = useState('matches')
+  const [activeStage, setActiveStage] = useState('group')
   const [activeGroup, setActiveGroup] = useState('all')
   const [inviteCopied, setInviteCopied] = useState(false)
 
@@ -126,7 +127,7 @@ export default function GroupPage() {
         const result = matchResults[matchId]
         if (!result || !result.isFinished) return
         const { points, correctWinner, correctScore } = calculatePoints(
-          { team1Goals: pred.team1Goals, team2Goals: pred.team2Goals },
+          pred,
           { team1Goals: result.team1Goals, team2Goals: result.team2Goals }
         )
         totalPoints += points
@@ -147,21 +148,49 @@ export default function GroupPage() {
     setScores(scoresList)
   }
 
-  async function savePrediction(match, { team1Goals, team2Goals }) {
+  async function savePrediction(match, predData) {
     const predId = `${groupId}_${match.id}_${user.uid}`
-    await setDoc(doc(db, 'predictions', predId), {
+    const predDoc = {
       groupId,
       matchId: match.id,
       uid: user.uid,
-      team1Goals,
-      team2Goals,
+      predictionType: predData.predictionType || 'score',
       updatedAt: serverTimestamp(),
-    }, { merge: true })
+    }
+
+    if (predData.predictionType === 'outcome') {
+      predDoc.outcome = predData.outcome
+      predDoc.team1Goals = null
+      predDoc.team2Goals = null
+    } else {
+      predDoc.team1Goals = predData.team1Goals
+      predDoc.team2Goals = predData.team2Goals
+      predDoc.outcome = null
+    }
+
+    await setDoc(doc(db, 'predictions', predId), predDoc)
 
     setPredictions(prev => ({
       ...prev,
-      [match.id]: { groupId, matchId: match.id, uid: user.uid, team1Goals, team2Goals }
+      [match.id]: { ...predDoc, updatedAt: null }
     }))
+  }
+
+  async function deletePrediction(matchId) {
+    const predId = `${groupId}_${matchId}_${user.uid}`
+    try {
+      await deleteDoc(doc(db, 'predictions', predId))
+      setPredictions(prev => {
+        const next = { ...prev }
+        delete next[matchId]
+        return next
+      })
+    } catch (err) {
+      console.error('Error eliminando predicción:', err)
+      if (err?.code === 'permission-denied' || err?.message?.includes('Missing or insufficient permissions')) {
+        handlePermissionError()
+      }
+    }
   }
 
   const copyInviteCode = () => {
@@ -171,22 +200,25 @@ export default function GroupPage() {
     setTimeout(() => setInviteCopied(false), 2000)
   }
 
-  // Filtrar partidos
+  // Filtrar partidos por fase y grupo
   const filteredMatches = useMemo(() => {
     return MATCHES.filter(m => {
-      if (m.stage !== 'group') {
-        // Solo mostrar fase eliminatoria si hay equipos definidos
-        const hasTeams = m.team1 !== 'Por definir' || m.team2 !== 'Por definir'
-        return hasTeams || m.stage === 'r32' // siempre mostrar R32 para predicciones
+      if (activeStage === 'group') {
+        if (m.stage !== 'group') return false
+        if (activeGroup === 'all') return true
+        return m.group === activeGroup
       }
-      if (activeGroup === 'all') return true
-      return m.group === activeGroup
+      // Fases eliminatorias: agrupar 3rd con final
+      if (activeStage === 'final') {
+        return m.stage === 'final' || m.stage === '3rd'
+      }
+      return m.stage === activeStage
     }).sort((a, b) => {
       const da = new Date(a.date), db2 = new Date(b.date)
       if (da - db2 !== 0) return da - db2
       return (a.matchNum || 0) - (b.matchNum || 0)
     })
-  }, [activeGroup])
+  }, [activeStage, activeGroup])
 
   // Partidos con resultados pendientes (para mostrar primero)
   const upcomingMatches = filteredMatches.filter(m => !hasMatchStarted(m))
@@ -275,28 +307,52 @@ export default function GroupPage() {
         {/* MATCHES TAB */}
         {activeTab === 'matches' && (
           <div className="space-y-4">
-            {/* Group filter */}
+            {/* Stage filter */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              <button
-                onClick={() => setActiveGroup('all')}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  activeGroup === 'all' ? 'bg-wc-gold text-wc-dark' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Todos
-              </button>
-              {['A','B','C','D','E','F','G','H','I','J','K','L'].map(g => (
+              {[
+                { key: 'group', label: 'Grupos' },
+                { key: 'r32', label: '32vos' },
+                { key: 'r16', label: '8vos' },
+                { key: 'qf', label: '4tos' },
+                { key: 'sf', label: 'Semi' },
+                { key: 'final', label: 'Final' },
+              ].map(s => (
                 <button
-                  key={g}
-                  onClick={() => setActiveGroup(g)}
+                  key={s.key}
+                  onClick={() => { setActiveStage(s.key); setActiveGroup('all') }}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                    activeGroup === g ? 'bg-wc-gold text-wc-dark' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    activeStage === s.key ? 'bg-wc-gold text-wc-dark' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                   }`}
                 >
-                  Grupo {g}
+                  {s.label}
                 </button>
               ))}
             </div>
+
+            {/* Group sub-filter (only for group stage) */}
+            {activeStage === 'group' && (
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <button
+                  onClick={() => setActiveGroup('all')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    activeGroup === 'all' ? 'bg-wc-green text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  Todos
+                </button>
+                {['A','B','C','D','E','F','G','H','I','J','K','L'].map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setActiveGroup(g)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                      activeGroup === g ? 'bg-wc-green text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Upcoming matches */}
             {upcomingMatches.length > 0 && (
@@ -306,12 +362,13 @@ export default function GroupPage() {
                   Próximos partidos ({upcomingMatches.length})
                 </h3>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {upcomingMatches.slice(0, 20).map(match => (
+                  {upcomingMatches.map(match => (
                     <MatchCard
                       key={match.id}
                       match={{ ...match, ...matchResults[match.id] }}
                       prediction={predictions[match.id]}
                       onPredict={setSelectedMatch}
+                      onReset={deletePrediction}
                     />
                   ))}
                 </div>

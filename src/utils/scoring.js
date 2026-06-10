@@ -1,26 +1,40 @@
 // Sistema de puntuación de la Polla Mundialista
-// +0.5 si acierta el ganador (o empate)
-// +0.5 si acierta el resultado exacto
-// Máximo 1 punto por partido
+// Marcador exacto: 3 puntos
+// Acertar ganador/empate (sin marcador exacto): 1 punto
+// Predicción solo resultado: máximo 1 punto
 
 /**
  * Calcula los puntos de una predicción dado el resultado real
- * @param {Object} prediction - { team1Goals: number, team2Goals: number }
+ * @param {Object} prediction - { predictionType?: 'score'|'outcome', team1Goals?, team2Goals?, outcome? }
  * @param {Object} result - { team1Goals: number, team2Goals: number }
  * @returns {{ points: number, correctWinner: boolean, correctScore: boolean }}
  */
 export function calculatePoints(prediction, result) {
   if (
-    prediction.team1Goals === null || prediction.team1Goals === undefined ||
-    prediction.team2Goals === null || prediction.team2Goals === undefined ||
     result.team1Goals === null || result.team1Goals === undefined ||
     result.team2Goals === null || result.team2Goals === undefined
   ) {
     return { points: 0, correctWinner: false, correctScore: false }
   }
 
-  const predOutcome = getOutcome(prediction.team1Goals, prediction.team2Goals)
   const realOutcome = getOutcome(result.team1Goals, result.team2Goals)
+  const predType = prediction.predictionType || 'score'
+
+  // Predicción solo resultado
+  if (predType === 'outcome') {
+    const correctWinner = prediction.outcome === realOutcome
+    return { points: correctWinner ? 1 : 0, correctWinner, correctScore: false }
+  }
+
+  // Predicción de marcador
+  if (
+    prediction.team1Goals === null || prediction.team1Goals === undefined ||
+    prediction.team2Goals === null || prediction.team2Goals === undefined
+  ) {
+    return { points: 0, correctWinner: false, correctScore: false }
+  }
+
+  const predOutcome = getOutcome(prediction.team1Goals, prediction.team2Goals)
 
   const correctWinner = predOutcome === realOutcome
   const correctScore =
@@ -28,8 +42,8 @@ export function calculatePoints(prediction, result) {
     prediction.team2Goals === result.team2Goals
 
   let points = 0
-  if (correctWinner) points += 0.5
-  if (correctScore) points += 0.5
+  if (correctScore) points = 3
+  else if (correctWinner) points = 1
 
   return { points, correctWinner, correctScore }
 }
@@ -59,7 +73,7 @@ export function calculateTotalScore(predictions, matchResults) {
     if (!result || !result.isFinished) continue
 
     const { points, correctWinner, correctScore } = calculatePoints(
-      { team1Goals: pred.team1Goals, team2Goals: pred.team2Goals },
+      pred,
       { team1Goals: result.team1Goals, team2Goals: result.team2Goals }
     )
 

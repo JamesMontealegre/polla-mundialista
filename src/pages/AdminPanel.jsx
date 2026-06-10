@@ -14,6 +14,17 @@ function formatDate(dateStr) {
   })
 }
 
+function formatRelativeTime(dateStr) {
+  const diff = new Date(dateStr) - Date.now()
+  if (diff <= 0) return 'Por iniciar'
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `Inicia en ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `Inicia en ${hours}h`
+  const days = Math.floor(hours / 24)
+  return `Inicia en ${days}d`
+}
+
 export default function AdminPanel() {
   const navigate = useNavigate()
   const { handlePermissionError } = useAuth()
@@ -244,7 +255,7 @@ export default function AdminPanel() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       {hasResult && (
                         <button
                           onClick={() => clearResult(match.id)}
@@ -253,7 +264,7 @@ export default function AdminPanel() {
                           Borrar
                         </button>
                       )}
-                      {started && (
+                      {started ? (
                         <button
                           onClick={() => startEdit(match)}
                           className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
@@ -264,9 +275,13 @@ export default function AdminPanel() {
                         >
                           {hasResult ? '✏️ Editar' : '📝 Resultado'}
                         </button>
-                      )}
-                      {!started && (
-                        <span className="text-xs text-gray-500 italic">Aún no empieza</span>
+                      ) : (
+                        <button
+                          disabled
+                          className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-500 cursor-not-allowed opacity-50"
+                        >
+                          🔒 {formatRelativeTime(match.date)}
+                        </button>
                       )}
                     </div>
                   </div>

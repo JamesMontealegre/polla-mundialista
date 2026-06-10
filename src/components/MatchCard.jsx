@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { FLAGS, hasMatchStarted, STAGE_NAMES } from '../data/matches'
+import { calculatePoints } from '../utils/scoring'
 
 // Formatea fecha en hora Colombia
 function formatDate(dateStr) {
@@ -17,31 +19,61 @@ export default function MatchCard({
   match,
   prediction,
   onPredict,
+  onReset,
   showResult = false,
 }) {
+  const [timeLeft, setTimeLeft] = useState(null) // seconds until cutoff
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const started = hasMatchStarted(match)
   const hasResult = match.team1Goals !== null && match.team1Goals !== undefined
-  const hasPrediction = prediction && prediction.team1Goals !== undefined
+  const predType = prediction?.predictionType || 'score'
+  const hasPrediction = prediction && (
+    predType === 'outcome'
+      ? prediction.outcome != null
+      : prediction.team1Goals !== undefined
+  )
+
+  // Countdown timer: updates every second when within 5 min of cutoff
+  useEffect(() => {
+    const cutoff = new Date(new Date(match.date).getTime() - 5 * 60 * 1000)
+
+    function tick() {
+      const diff = Math.floor((cutoff - Date.now()) / 1000)
+      setTimeLeft(diff > 0 ? diff : 0)
+    }
+
+    tick()
+    // Only run interval if within 5 minutes
+    const diff = Math.floor((cutoff - Date.now()) / 1000)
+    if (diff > 0 && diff <= 300) {
+      const id = setInterval(tick, 1000)
+      return () => clearInterval(id)
+    }
+  }, [match.date])
 
   // Calcula puntos si hay resultado y predicción
-  let points = null
-  let correctWinner = false
-  let correctScore = false
+  let pointsResult = null
   if (hasResult && hasPrediction) {
-    const pOutcome = getOutcome(prediction.team1Goals, prediction.team2Goals)
-    const rOutcome = getOutcome(match.team1Goals, match.team2Goals)
-    correctWinner = pOutcome === rOutcome
-    correctScore = prediction.team1Goals === match.team1Goals && prediction.team2Goals === match.team2Goals
-    points = (correctWinner ? 0.5 : 0) + (correctScore ? 0.5 : 0)
-  }
-
-  function getOutcome(g1, g2) {
-    if (g1 > g2) return 'team1'
-    if (g2 > g1) return 'team2'
-    return 'draw'
+    pointsResult = calculatePoints(prediction, { team1Goals: match.team1Goals, team2Goals: match.team2Goals })
   }
 
   const isPDef = match.team1 === 'Por definir'
+
+  // Formato del countdown mm:ss
+  const countdownLabel = timeLeft != null && timeLeft > 0 && timeLeft <= 300
+    ? `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`
+    : null
+
+  // Etiqueta de predicción
+  const predLabel = () => {
+    if (!hasPrediction) return null
+    if (predType === 'outcome') {
+      if (prediction.outcome === 'team1') return `${FLAGS[match.team1] || ''} Gana`
+      if (prediction.outcome === 'team2') return `${FLAGS[match.team2] || ''} Gana`
+      return 'Empate'
+    }
+    return `${prediction.team1Goals}-${prediction.team2Goals}`
+  }
 
   return (
     <div className={`bg-gray-900 rounded-xl border ${hasResult ? 'border-wc-green' : 'border-gray-700'} overflow-hidden transition-all hover:border-gray-500`}>
@@ -78,13 +110,13 @@ export default function MatchCard({
             {hasPrediction && (
               <div className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
                 hasResult
-                  ? points === 1 ? 'bg-green-900 text-green-300'
-                    : points === 0.5 ? 'bg-yellow-900 text-yellow-300'
+                  ? pointsResult.points >= 3 ? 'bg-green-900 text-green-300'
+                    : pointsResult.points >= 1 ? 'bg-yellow-900 text-yellow-300'
                     : 'bg-red-900 text-red-300'
                   : 'bg-gray-700 text-gray-300'
               }`}>
-                <span>👤 {prediction.team1Goals}-{prediction.team2Goals}</span>
-                {hasResult && <span className="font-bold">+{points}pts</span>}
+                <span>👤 {predLabel()}</span>
+                {hasResult && <span className="font-bold">+{pointsResult.points}pts</span>}
               </div>
             )}
           </div>
@@ -102,21 +134,61 @@ export default function MatchCard({
         {/* CTA Button */}
         {!isPDef && onPredict && (
           <div className="mt-3">
-            {started ? (
+            {started || timeLeft === 0 ? (
               <div className="text-center text-xs text-gray-500 italic">
                 Partido en curso o finalizado
               </div>
             ) : (
-              <button
-                onClick={() => onPredict(match)}
-                className={`w-full py-2 rounded-lg text-sm font-semibold transition-all ${
-                  hasPrediction
-                    ? 'bg-wc-green text-white hover:bg-green-700'
-                    : 'bg-wc-gold text-wc-dark hover:bg-yellow-400'
-                }`}
-              >
-                {hasPrediction ? '✏️ Cambiar predicción' : '🔮 Predecir resultado'}
-              </button>
+              <>
+                {hasPrediction ? (
+                  showResetConfirm ? (
+                    <div className="bg-gray-800 rounded-lg p-3 border border-red-800">
+                      <p className="text-xs text-gray-300 text-center mb-2">¿Eliminar tu predicción para este partido?</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowResetConfirm(false)}
+                          className="flex-1 py-1.5 rounded-lg border border-gray-600 text-gray-300 text-xs"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => { onReset(match.id); setShowResetConfirm(false) }}
+                          className="flex-1 py-1.5 rounded-lg bg-red-700 text-white text-xs font-bold hover:bg-red-600"
+                        >
+                          Sí, eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onPredict(match)}
+                        className="flex-1 py-2 rounded-lg text-sm font-semibold bg-wc-green text-white hover:bg-green-700 transition-all"
+                      >
+                        ✏️ Cambiar
+                      </button>
+                      <button
+                        onClick={() => setShowResetConfirm(true)}
+                        className="py-2 px-3 rounded-lg text-sm font-semibold border border-red-800 text-red-400 hover:bg-red-900/30 transition-all"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <button
+                    onClick={() => onPredict(match)}
+                    className="w-full py-2 rounded-lg text-sm font-semibold bg-wc-gold text-wc-dark hover:bg-yellow-400 transition-all"
+                  >
+                    🔮 Predecir resultado
+                  </button>
+                )}
+                {countdownLabel && (
+                  <div className="mt-1.5 text-center text-xs font-mono font-bold text-red-400 animate-pulse">
+                    ⏱️ Cierra en {countdownLabel}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
