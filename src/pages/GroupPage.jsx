@@ -520,6 +520,7 @@ export default function GroupPage() {
               scores={scores}
               currentUserId={user.uid}
               confirmedMemberCount={members.filter(m => (m.paymentStatus || 'pending') === 'confirmed' && !(group?.adminIds || []).includes(m.uid)).length}
+              totalMemberCount={members.filter(m => !(group?.adminIds || []).includes(m.uid)).length}
             />
           </div>
         )}

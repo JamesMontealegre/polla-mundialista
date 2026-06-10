@@ -1,6 +1,8 @@
-export default function Leaderboard({ scores, currentUserId, confirmedMemberCount = 0 }) {
+export default function Leaderboard({ scores, currentUserId, confirmedMemberCount = 0, totalMemberCount = 0 }) {
   const CUOTA_POZO = 25000
   const totalPozo = confirmedMemberCount * CUOTA_POZO
+  const estimatedPozo = totalMemberCount * CUOTA_POZO
+  const allPaid = confirmedMemberCount >= totalMemberCount
 
   if (!scores || scores.length === 0) {
     return (
@@ -43,6 +45,11 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
             <div className="text-gray-400 text-xs uppercase tracking-wider">Pozo de premios</div>
             <div className="text-wc-gold font-black text-2xl">{fmt(totalPozo)}</div>
             <div className="text-gray-400 text-xs">{confirmedMemberCount} participante{confirmedMemberCount !== 1 ? 's' : ''} confirmado{confirmedMemberCount !== 1 ? 's' : ''}</div>
+            {!allPaid && totalMemberCount > 0 && (
+              <div className="text-gray-500 text-xs mt-1">
+                Estimado con {totalMemberCount} inscritos: <span className="text-gray-300 font-semibold">{fmt(estimatedPozo)}</span>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="bg-gray-800/60 rounded-lg p-2">
