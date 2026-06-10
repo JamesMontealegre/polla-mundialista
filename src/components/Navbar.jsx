@@ -19,9 +19,21 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <span className="text-2xl">⚽</span>
-          <div>
-            <span className="text-white font-black text-lg leading-none">POLLA</span>
-            <span className="text-wc-gold font-black text-lg leading-none ml-1">MUNDIAL 26</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-white font-black text-sm sm:text-lg leading-none">Polla Mundial de la FIFA 2026</span>
+            <span className="text-xs sm:text-sm font-black leading-none hidden sm:inline">-</span>
+            {/* CANADA */}
+            <span className="font-black text-xs sm:text-sm leading-none hidden sm:inline">
+              <span className="text-red-500">CA</span><span className="text-white">NA</span><span className="text-red-500">DA</span>
+            </span>
+            {/* USA */}
+            <span className="font-black text-xs sm:text-sm leading-none hidden sm:inline">
+              <span className="text-blue-500">U</span><span className="text-red-500">S</span><span className="text-white">A</span>
+            </span>
+            {/* MEXICO */}
+            <span className="font-black text-xs sm:text-sm leading-none hidden sm:inline">
+              <span className="text-green-500">ME</span><span className="text-white">XI</span><span className="text-red-500">CO</span>
+            </span>
           </div>
         </Link>
 
