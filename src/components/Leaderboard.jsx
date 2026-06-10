@@ -13,11 +13,17 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
     )
   }
 
+  const paymentOrder = { confirmed: 0, uploaded: 1, pending: 2, rejected: 3 }
+
   const sorted = [...scores].sort((a, b) => {
+    // Primero: confirmados antes que pendientes
+    const pa = paymentOrder[a.paymentStatus] ?? 2
+    const pb = paymentOrder[b.paymentStatus] ?? 2
+    if (pa !== pb) return pa - pb
+    // Luego: por puntos y desempate
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
     if (b.correctScores !== a.correctScores) return b.correctScores - a.correctScores
     if (b.correctWinners !== a.correctWinners) return b.correctWinners - a.correctWinners
-    // Desempate: quien predijo antes en promedio (menor avgTimestamp = mejor)
     return (a.avgTimestamp || Infinity) - (b.avgTimestamp || Infinity)
   })
 

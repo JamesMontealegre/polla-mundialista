@@ -532,7 +532,13 @@ export default function GroupPage() {
               <h2 className="text-white font-bold text-lg">👥 Participantes</h2>
             </div>
             <div className="space-y-2 mb-6">
-              {members.map(m => (
+              {[...members].sort((a, b) => {
+                const order = { confirmed: 0, uploaded: 1, pending: 2, rejected: 3 }
+                const isAdminA = group?.adminIds?.includes(a.uid) ? -1 : 0
+                const isAdminB = group?.adminIds?.includes(b.uid) ? -1 : 0
+                if (isAdminA !== isAdminB) return isAdminA - isAdminB
+                return (order[a.paymentStatus] ?? 2) - (order[b.paymentStatus] ?? 2)
+              }).map(m => (
                 <div key={m.uid} className="flex items-center gap-3 bg-gray-900 rounded-xl p-3 border border-gray-700">
                   {m.photoURL ? (
                     <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
@@ -591,7 +597,10 @@ export default function GroupPage() {
               </span>
             </div>
             <div className="space-y-2">
-              {members.filter(m => !(group?.adminIds || []).includes(m.uid)).map(m => {
+              {[...members].filter(m => !(group?.adminIds || []).includes(m.uid)).sort((a, b) => {
+                const order = { uploaded: 0, pending: 1, rejected: 2, confirmed: 3 }
+                return (order[a.paymentStatus] ?? 1) - (order[b.paymentStatus] ?? 1)
+              }).map(m => {
                 const pStatus = m.paymentStatus || 'pending'
                 const statusConfig = {
                   pending: { label: 'Pendiente', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-700' },
