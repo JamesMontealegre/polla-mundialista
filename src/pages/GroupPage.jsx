@@ -200,6 +200,13 @@ export default function GroupPage() {
     setTimeout(() => setInviteCopied(false), 2000)
   }
 
+  const copyInviteLink = () => {
+    if (!group) return
+    navigator.clipboard.writeText(`${window.location.origin}/join?code=${group.inviteCode}`)
+    setInviteCopied(true)
+    setTimeout(() => setInviteCopied(false), 2000)
+  }
+
   // Filtrar partidos por fase y grupo
   const filteredMatches = useMemo(() => {
     return MATCHES.filter(m => {
@@ -453,7 +460,7 @@ export default function GroupPage() {
                 {window.location.origin}/join?code={group.inviteCode}
               </div>
               <button
-                onClick={copyInviteCode}
+                onClick={copyInviteLink}
                 className={`w-full mt-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   inviteCopied ? 'bg-green-700 text-white' : 'bg-wc-gold text-wc-dark hover:bg-yellow-400'
                 }`}
