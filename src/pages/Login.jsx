@@ -110,7 +110,7 @@ export default function Login() {
                 <div>
                   Inscripcion:{" "}
                   <span className="text-white font-bold">$30.000 COP</span> por
-                  grupo
+                  participante
                 </div>
                 <div className="pl-4 text-xs text-gray-400">
                   $25.000 van al pozo de premios

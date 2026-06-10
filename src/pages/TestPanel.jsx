@@ -129,8 +129,8 @@ function TeamAssignmentTest() {
         detail: ALL_TEAMS.slice(0, 3).join(', ') + '...',
       },
       {
-        label: 'STAGE_NAMES contiene Dieciseisavos',
-        passed: STAGE_NAMES.r32 === 'Dieciseisavos de Final',
+        label: 'STAGE_NAMES contiene Ronda de 32',
+        passed: STAGE_NAMES.r32 === 'Ronda de 32',
         detail: `r32 = "${STAGE_NAMES.r32}"`,
       },
     ]
