@@ -123,11 +123,11 @@ export default function GameRules() {
               Predicciones flexibles
             </div>
             <p className="text-sm text-gray-300">
-              No necesitas llenar todos los partidos de una vez. Tienes hasta
-              5 minutos antes del inicio de cada partido para hacer o cambiar
-              tu pronostico. Veras un contador regresivo de 5 minutos cuando
-              se acerque el cierre. Una vez agotado el tiempo, la prediccion
-              se bloquea automaticamente.
+              No necesitas llenar todos los partidos de una vez. Puedes hacer
+              o cambiar tu pronostico en cualquier momento, pero las predicciones
+              se cierran 5 minutos antes del inicio de cada partido. Veras un
+              contador regresivo cuando se acerque el cierre. Una vez agotado
+              el tiempo, la prediccion se bloquea automaticamente.
             </p>
           </div>
         </div>
