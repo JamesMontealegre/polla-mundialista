@@ -187,6 +187,7 @@ export default function GroupPage() {
         uid: member.uid,
         displayName: member.displayName,
         photoURL: member.photoURL,
+        paymentStatus: member.paymentStatus || 'pending',
         totalPoints,
         correctWinners,
         correctScores,

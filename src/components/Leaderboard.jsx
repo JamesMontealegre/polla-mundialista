@@ -98,9 +98,13 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
               <div className={`font-semibold text-sm truncate ${isMe ? 'text-wc-gold' : 'text-white'}`}>
                 {entry.displayName} {isMe && '(tú)'}
               </div>
-              <div className="text-xs text-gray-400">
-                {entry.correctWinners} ganadores · {entry.correctScores} exactos
-                {tied && <span className="text-blue-400 ml-1">· desempate por anticipacion</span>}
+              <div className="text-xs text-gray-400 flex items-center gap-1 flex-wrap">
+                <span>{entry.correctWinners} ganadores · {entry.correctScores} exactos</span>
+                {tied && <span className="text-blue-400">· desempate por anticipacion</span>}
+                {entry.paymentStatus === 'confirmed'
+                  ? <span className="text-green-400">· Pago confirmado</span>
+                  : <span className="text-yellow-400">· Pago pendiente</span>
+                }
               </div>
             </div>
 
