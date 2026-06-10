@@ -169,9 +169,9 @@ export default function MatchCard({
                       </button>
                       <button
                         onClick={() => setShowResetConfirm(true)}
-                        className="py-2 px-3 rounded-lg text-sm font-semibold border border-red-800 text-red-400 hover:bg-red-900/30 transition-all"
+                        className="py-2 px-3 rounded-lg text-xs font-semibold border border-gray-600 text-gray-400 hover:border-red-800 hover:text-red-400 transition-all"
                       >
-                        🗑️
+                        Restablecer
                       </button>
                     </div>
                   )

@@ -50,7 +50,8 @@ service cloud.firestore {
     // Predicciones — cada usuario escribe las suyas, todos en el grupo pueden leer
     match /predictions/{predId} {
       allow read: if isAuth();
-      allow write: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow create, update: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuth() && resource.data.uid == request.auth.uid;
     }
   }
 }

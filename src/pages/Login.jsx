@@ -41,7 +41,7 @@ export default function Login() {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-2xl">🏅</span>
-            <span className="text-gray-300">+0.5 pts por ganador, +0.5 por marcador exacto</span>
+            <span className="text-gray-300">+3 pts marcador exacto, +1 pt por resultado</span>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-2xl">👥</span>
