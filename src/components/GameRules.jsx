@@ -28,19 +28,19 @@ export default function GameRules() {
             </div>
             <div className="space-y-1.5 text-sm text-gray-300">
               <div className="flex items-center gap-2">
-                <span className="text-green-400 font-bold w-14 text-right">
+                <span className="text-green-400 font-bold font-mono w-16 text-right shrink-0">
                   +3 pts
                 </span>
                 <span>Marcador exacto (ej: 2-1 y sale 2-1)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-blue-400 font-bold w-14 text-right">
-                  +1 pt
+                <span className="text-blue-400 font-bold font-mono w-16 text-right shrink-0">
+                  +1 pts
                 </span>
                 <span>Acertar ganador o empate sin marcador exacto</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-red-400 font-bold w-14 text-right">
+                <span className="text-red-400 font-bold font-mono w-16 text-right shrink-0">
                   0 pts
                 </span>
                 <span>No acertar resultado</span>
@@ -125,7 +125,9 @@ export default function GameRules() {
             <p className="text-sm text-gray-300">
               No necesitas llenar todos los partidos de una vez. Tienes hasta
               5 minutos antes del inicio de cada partido para hacer o cambiar
-              tu pronostico.
+              tu pronostico. Veras un contador regresivo de 5 minutos cuando
+              se acerque el cierre. Una vez agotado el tiempo, la prediccion
+              se bloquea automaticamente.
             </p>
           </div>
         </div>

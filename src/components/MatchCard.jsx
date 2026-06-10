@@ -33,9 +33,10 @@ export default function MatchCard({
       : prediction.team1Goals !== undefined
   )
 
-  // Countdown timer: updates every second when within 5 min of cutoff
+  // Countdown timer: locks predictions 5 min before match start
   useEffect(() => {
     const cutoff = new Date(new Date(match.date).getTime() - 5 * 60 * 1000)
+    const cleanups = []
 
     function tick() {
       const diff = Math.floor((cutoff - Date.now()) / 1000)
@@ -43,12 +44,26 @@ export default function MatchCard({
     }
 
     tick()
-    // Only run interval if within 5 minutes
     const diff = Math.floor((cutoff - Date.now()) / 1000)
-    if (diff > 0 && diff <= 300) {
+
+    if (diff <= 0) {
+      // Already past cutoff
+    } else if (diff <= 300) {
+      // Within 5 min window: tick every second
       const id = setInterval(tick, 1000)
-      return () => clearInterval(id)
+      cleanups.push(() => clearInterval(id))
+    } else {
+      // More than 5 min away: schedule a timeout to start the countdown
+      const delay = (diff - 300) * 1000
+      const timeoutId = setTimeout(() => {
+        tick()
+        const id = setInterval(tick, 1000)
+        cleanups.push(() => clearInterval(id))
+      }, delay)
+      cleanups.push(() => clearTimeout(timeoutId))
     }
+
+    return () => cleanups.forEach(fn => fn())
   }, [match.date])
 
   // Calcula puntos si hay resultado y predicción
