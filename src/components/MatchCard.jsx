@@ -91,7 +91,7 @@ export default function MatchCard({
           {/* Team 1 */}
           <div className="flex-1 text-center">
             <div className="text-2xl mb-1">{FLAGS[match.team1] || '🏳️'}</div>
-            <div className="text-white font-semibold text-sm leading-tight">{match.team1}</div>
+            <div className="text-white font-semibold text-sm leading-tight min-h-[2.5rem] flex items-center justify-center">{match.team1}</div>
           </div>
 
           {/* Score / Status */}
@@ -124,7 +124,7 @@ export default function MatchCard({
           {/* Team 2 */}
           <div className="flex-1 text-center">
             <div className="text-2xl mb-1">{FLAGS[match.team2] || '🏳️'}</div>
-            <div className="text-white font-semibold text-sm leading-tight">{match.team2}</div>
+            <div className="text-white font-semibold text-sm leading-tight min-h-[2.5rem] flex items-center justify-center">{match.team2}</div>
           </div>
         </div>
 
