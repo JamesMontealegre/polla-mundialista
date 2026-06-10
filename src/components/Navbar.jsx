@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import ProfileModal from './ProfileModal'
 
 export default function Navbar() {
-  const { user, userProfile, logout, isAdmin } = useAuth()
+  const { user, userProfile, logout, isAdmin, profileComplete } = useAuth()
   const navigate = useNavigate()
+  const [showProfile, setShowProfile] = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -34,18 +37,26 @@ export default function Navbar() {
                   ⚙️ Admin
                 </Link>
               )}
-              <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowProfile(true)}
+                className="flex items-center gap-2 relative hover:opacity-80 transition-opacity"
+              >
                 {user.photoURL && (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName}
-                    className="w-8 h-8 rounded-full border-2 border-wc-gold"
-                  />
+                  <div className="relative">
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName}
+                      className="w-8 h-8 rounded-full border-2 border-wc-gold"
+                    />
+                    {!profileComplete && (
+                      <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-wc-dark" />
+                    )}
+                  </div>
                 )}
                 <span className="text-gray-300 text-sm hidden sm:block truncate max-w-[120px]">
                   {user.displayName?.split(' ')[0]}
                 </span>
-              </div>
+              </button>
               <button
                 onClick={handleLogout}
                 className="text-gray-400 hover:text-white text-sm transition-colors"
@@ -56,6 +67,7 @@ export default function Navbar() {
           )}
         </div>
       </div>
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </nav>
   )
 }

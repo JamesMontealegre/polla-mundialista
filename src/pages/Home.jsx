@@ -34,7 +34,13 @@ export default function Home() {
         where('uid', '==', user.uid)
       )
       const snap = await getDocs(q)
-      const groupIds = snap.docs.map(d => d.data().groupId)
+      // Save membership data keyed by groupId for payment badge
+      const membershipMap = {}
+      snap.docs.forEach(d => {
+        const data = d.data()
+        membershipMap[data.groupId] = data
+      })
+      const groupIds = Object.keys(membershipMap)
 
       if (groupIds.length === 0) {
         setGroups([])
@@ -48,7 +54,21 @@ export default function Home() {
       )
       const groupsList = groupDocs
         .filter(d => d.exists())
-        .map(d => ({ id: d.id, ...d.data() }))
+        .map(d => ({ id: d.id, ...d.data(), myPaymentStatus: membershipMap[d.id]?.paymentStatus || 'pending' }))
+
+      // For admin groups, fetch member payment stats
+      const adminGroups = groupsList.filter(g => g.adminIds?.includes(user.uid))
+      if (adminGroups.length > 0) {
+        const memberSnaps = await Promise.all(
+          adminGroups.map(g => getDocs(query(collection(db, 'groupMembers'), where('groupId', '==', g.id))))
+        )
+        adminGroups.forEach((g, i) => {
+          const allMembers = memberSnaps[i].docs.map(d => d.data())
+          const nonAdmins = allMembers.filter(m => !(g.adminIds || []).includes(m.uid))
+          g.paymentConfirmed = nonAdmins.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length
+          g.paymentTotal = nonAdmins.length
+        })
+      }
 
       setGroups(groupsList)
     } catch (err) {
@@ -73,13 +93,15 @@ export default function Home() {
         createdAt: serverTimestamp(),
         adminIds: [user.uid],
       })
-      // Agregar al creador como miembro
+      // Agregar al creador como miembro (auto-confirmado)
       await addDoc(collection(db, 'groupMembers'), {
         groupId: groupRef.id,
         uid: user.uid,
         displayName: user.displayName,
         photoURL: user.photoURL || null,
         joinedAt: serverTimestamp(),
+        paymentStatus: 'confirmed',
+        receiptURL: null,
       })
       setNewGroupName('')
       setShowCreate(false)
@@ -236,10 +258,29 @@ export default function Home() {
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="text-white font-bold">{group.name}</div>
-                            <div className="text-gray-400 text-xs mt-0.5">
-                              Código: <span className="text-wc-gold font-mono font-bold">{group.inviteCode}</span>
-                              {group.adminIds?.includes(user.uid) && (
-                                <span className="ml-2 text-wc-green">⭐ Admin</span>
+                            <div className="text-gray-400 text-xs mt-0.5 flex items-center gap-2 flex-wrap">
+                              <span>Código: <span className="text-wc-gold font-mono font-bold">{group.inviteCode}</span></span>
+                              {group.adminIds?.includes(user.uid) ? (
+                                <>
+                                  <span className="text-wc-green">Admin</span>
+                                  {group.paymentTotal != null && (
+                                    <span className={group.paymentConfirmed === group.paymentTotal ? 'text-green-400' : 'text-yellow-400'}>
+                                      {group.paymentConfirmed}/{group.paymentTotal} pagos
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {group.myPaymentStatus === 'confirmed' ? (
+                                    <span className="text-green-400">Habilitado</span>
+                                  ) : group.myPaymentStatus === 'uploaded' ? (
+                                    <span className="text-blue-400">En revision</span>
+                                  ) : group.myPaymentStatus === 'rejected' ? (
+                                    <span className="text-red-400">Rechazado</span>
+                                  ) : (
+                                    <span className="text-yellow-400">Pago pendiente</span>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>

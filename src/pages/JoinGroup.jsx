@@ -67,6 +67,8 @@ export default function JoinGroup() {
         displayName: user.displayName,
         photoURL: user.photoURL || null,
         joinedAt: serverTimestamp(),
+        paymentStatus: 'pending',
+        receiptURL: null,
       })
 
       setStatus('success')

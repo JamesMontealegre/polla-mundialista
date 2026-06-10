@@ -41,6 +41,7 @@ export function AuthProvider({ children }) {
               displayName: firebaseUser.displayName,
               email: firebaseUser.email,
               photoURL: firebaseUser.photoURL,
+              phoneNumber: null,
               isAdmin: firebaseUser.uid === ADMIN_UID,
               createdAt: new Date().toISOString(),
             }
@@ -78,7 +79,15 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = () => signInWithPopup(auth, googleProvider)
   const logout = () => signOut(auth)
 
+  const updateProfile = useCallback(async (updates) => {
+    if (!user) return
+    const userRef = doc(db, 'users', user.uid)
+    await setDoc(userRef, updates, { merge: true })
+    setUserProfile(prev => ({ ...prev, ...updates }))
+  }, [user])
+
   const isAdmin = userProfile?.isAdmin || false
+  const profileComplete = !!userProfile?.phoneNumber
 
   // Pantalla de error de permisos (no hace auto-redirect para evitar loops)
   if (permissionError) {
@@ -110,7 +119,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, loginWithGoogle, logout, isAdmin, handlePermissionError }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, loginWithGoogle, logout, isAdmin, profileComplete, updateProfile, handlePermissionError }}>
       {children}
     </AuthContext.Provider>
   )

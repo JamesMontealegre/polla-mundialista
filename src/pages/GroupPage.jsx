@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, serverTimestamp
+  doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
@@ -10,6 +10,7 @@ import { calculatePoints } from '../utils/scoring'
 import MatchCard from '../components/MatchCard'
 import PredictionModal from '../components/PredictionModal'
 import Leaderboard from '../components/Leaderboard'
+import PaymentModal from '../components/PaymentModal'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
 const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6 }
@@ -30,6 +31,7 @@ export default function GroupPage() {
   const [activeStage, setActiveStage] = useState('group')
   const [activeGroup, setActiveGroup] = useState('all')
   const [inviteCopied, setInviteCopied] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   useEffect(() => {
     loadAll()
@@ -62,7 +64,19 @@ export default function GroupPage() {
   async function loadMembers() {
     const q = query(collection(db, 'groupMembers'), where('groupId', '==', groupId))
     const snap = await getDocs(q)
-    setMembers(snap.docs.map(d => ({ docId: d.id, ...d.data() })))
+    const membersList = snap.docs.map(d => ({ docId: d.id, ...d.data() }))
+
+    // Fetch phone numbers from users collection
+    const userDocs = await Promise.all(
+      membersList.map(m => getDoc(doc(db, 'users', m.uid)))
+    )
+    userDocs.forEach((uDoc, i) => {
+      if (uDoc.exists()) {
+        membersList[i].phoneNumber = uDoc.data().phoneNumber || null
+      }
+    })
+
+    setMembers(membersList)
   }
 
   async function removeMember(member) {
@@ -72,6 +86,24 @@ export default function GroupPage() {
       setMembers(prev => prev.filter(m => m.uid !== member.uid))
     } catch (err) {
       console.error('Error eliminando miembro:', err)
+      if (err?.code === 'permission-denied' || err?.message?.includes('Missing or insufficient permissions')) {
+        handlePermissionError()
+      }
+    }
+  }
+
+  async function updatePaymentStatus(member, newStatus) {
+    try {
+      await updateDoc(doc(db, 'groupMembers', member.docId), {
+        paymentStatus: newStatus,
+        paymentReviewedAt: new Date().toISOString(),
+        paymentReviewedBy: user.uid,
+      })
+      setMembers(prev => prev.map(m =>
+        m.docId === member.docId ? { ...m, paymentStatus: newStatus } : m
+      ))
+    } catch (err) {
+      console.error('Error actualizando pago:', err)
       if (err?.code === 'permission-denied' || err?.message?.includes('Missing or insufficient permissions')) {
         handlePermissionError()
       }
@@ -118,12 +150,25 @@ export default function GroupPage() {
       allPredictions[data.uid][data.matchId] = data
     })
 
-    // Calcular score por miembro
-    const scoresList = members.map(member => {
+    // Calcular score por miembro (excluir admins del grupo)
+    const adminIds = group?.adminIds || []
+    const scoresList = members.filter(m => !adminIds.includes(m.uid)).map(member => {
       const memberPreds = allPredictions[member.uid] || {}
       let totalPoints = 0, correctWinners = 0, correctScores = 0
+      let timestampSum = 0, timestampCount = 0
 
       Object.entries(memberPreds).forEach(([matchId, pred]) => {
+        // Acumular timestamps de predicciones para desempate
+        const ts = pred.updatedAt
+        if (ts) {
+          // Firestore Timestamp → millis
+          const millis = ts.toDate ? ts.toDate().getTime() : ts.seconds ? ts.seconds * 1000 : null
+          if (millis) {
+            timestampSum += millis
+            timestampCount++
+          }
+        }
+
         const result = matchResults[matchId]
         if (!result || !result.isFinished) return
         const { points, correctWinner, correctScore } = calculatePoints(
@@ -135,6 +180,9 @@ export default function GroupPage() {
         if (correctScore) correctScores++
       })
 
+      // Promedio de timestamps (menor = predijo antes)
+      const avgTimestamp = timestampCount > 0 ? timestampSum / timestampCount : Infinity
+
       return {
         uid: member.uid,
         displayName: member.displayName,
@@ -142,6 +190,7 @@ export default function GroupPage() {
         totalPoints,
         correctWinners,
         correctScores,
+        avgTimestamp,
       }
     })
 
@@ -206,6 +255,12 @@ export default function GroupPage() {
     setInviteCopied(true)
     setTimeout(() => setInviteCopied(false), 2000)
   }
+
+  // Membership y estado de pago del usuario actual
+  const myMembership = members.find(m => m.uid === user.uid)
+  const myPaymentStatus = myMembership?.paymentStatus || 'pending'
+  const isGroupAdmin = group?.adminIds?.includes(user.uid)
+  const isPaymentConfirmed = myPaymentStatus === 'confirmed' || isGroupAdmin
 
   // Filtrar partidos por fase y grupo
   const filteredMatches = useMemo(() => {
@@ -307,10 +362,59 @@ export default function GroupPage() {
           >
             👥 Grupo
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('payments')}
+              className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                activeTab === 'payments' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              💰 Pagos
+            </button>
+          )}
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4">
+        {/* Payment banner (hide for group admin) */}
+        {!isPaymentConfirmed && myMembership && !isGroupAdmin && (
+          <div className={`rounded-xl p-4 mb-4 border ${
+            myPaymentStatus === 'uploaded'
+              ? 'bg-blue-900/20 border-blue-700'
+              : myPaymentStatus === 'rejected'
+              ? 'bg-red-900/20 border-red-700'
+              : 'bg-yellow-900/20 border-yellow-700'
+          }`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className={`font-bold text-sm ${
+                  myPaymentStatus === 'uploaded' ? 'text-blue-300' :
+                  myPaymentStatus === 'rejected' ? 'text-red-300' : 'text-yellow-300'
+                }`}>
+                  {myPaymentStatus === 'uploaded'
+                    ? 'Comprobante en revision'
+                    : myPaymentStatus === 'rejected'
+                    ? 'Comprobante rechazado'
+                    : 'Pago pendiente'}
+                </div>
+                <p className="text-gray-400 text-xs mt-0.5">
+                  {myPaymentStatus === 'uploaded'
+                    ? 'El admin esta revisando tu comprobante.'
+                    : myPaymentStatus === 'rejected'
+                    ? 'Tu comprobante fue rechazado. Sube uno nuevo.'
+                    : 'Debes pagar para poder hacer predicciones.'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="flex-shrink-0 px-4 py-2 rounded-lg bg-wc-gold text-wc-dark font-bold text-xs"
+              >
+                {myPaymentStatus === 'rejected' ? 'Resubir' : myPaymentStatus === 'uploaded' ? 'Ver estado' : 'Pagar'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* MATCHES TAB */}
         {activeTab === 'matches' && (
           <div className="space-y-4">
@@ -374,8 +478,8 @@ export default function GroupPage() {
                       key={match.id}
                       match={{ ...match, ...matchResults[match.id] }}
                       prediction={predictions[match.id]}
-                      onPredict={setSelectedMatch}
-                      onReset={deletePrediction}
+                      onPredict={isPaymentConfirmed ? setSelectedMatch : null}
+                      onReset={isPaymentConfirmed ? deletePrediction : null}
                     />
                   ))}
                 </div>
@@ -409,9 +513,13 @@ export default function GroupPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-bold text-lg">🏆 Tabla de Posiciones</h2>
-              <span className="text-gray-400 text-xs">{members.length} participantes</span>
+              <span className="text-gray-400 text-xs">{members.filter(m => !(group?.adminIds || []).includes(m.uid)).length} participantes</span>
             </div>
-            <Leaderboard scores={scores} currentUserId={user.uid} />
+            <Leaderboard
+              scores={scores}
+              currentUserId={user.uid}
+              confirmedMemberCount={members.filter(m => (m.paymentStatus || 'pending') === 'confirmed' && !(group?.adminIds || []).includes(m.uid)).length}
+            />
           </div>
         )}
 
@@ -434,10 +542,10 @@ export default function GroupPage() {
                   <div className="flex-1">
                     <div className="text-white font-semibold text-sm">
                       {m.displayName}
-                      {m.uid === user.uid && <span className="text-wc-gold text-xs ml-1">(tú)</span>}
+                      {m.uid === user.uid && <span className="text-wc-gold text-xs ml-1">(tu)</span>}
                     </div>
                     {group.adminIds?.includes(m.uid) && (
-                      <div className="text-wc-green text-xs">⭐ Admin del grupo</div>
+                      <div className="text-wc-green text-xs">Admin del grupo</div>
                     )}
                   </div>
                   {isAdmin && m.uid !== user.uid && (
@@ -470,6 +578,125 @@ export default function GroupPage() {
             </div>
           </div>
         )}
+
+        {/* PAYMENTS TAB (admin only) */}
+        {activeTab === 'payments' && isAdmin && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-bold text-lg">💰 Gestion de Pagos</h2>
+              <span className="text-gray-400 text-xs">
+                {members.filter(m => (m.paymentStatus || 'pending') === 'confirmed' && !(group?.adminIds || []).includes(m.uid)).length}/{members.filter(m => !(group?.adminIds || []).includes(m.uid)).length} habilitados
+              </span>
+            </div>
+            <div className="space-y-2">
+              {members.filter(m => !(group?.adminIds || []).includes(m.uid)).map(m => {
+                const pStatus = m.paymentStatus || 'pending'
+                const statusConfig = {
+                  pending: { label: 'Pendiente', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-700' },
+                  uploaded: { label: 'Enviado', color: 'text-blue-400 bg-blue-900/30 border-blue-700' },
+                  confirmed: { label: 'Habilitado', color: 'text-green-400 bg-green-900/30 border-green-700' },
+                  rejected: { label: 'Rechazado', color: 'text-red-400 bg-red-900/30 border-red-700' },
+                }
+                const cfg = statusConfig[pStatus] || statusConfig.pending
+
+                return (
+                  <div key={m.uid} className={`bg-gray-900 rounded-xl border ${pStatus === 'uploaded' ? 'border-blue-700' : 'border-gray-700'} overflow-hidden`}>
+                    {/* Header: user info + status */}
+                    <div className="flex items-center gap-3 p-3">
+                      {m.photoURL ? (
+                        <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
+                          {m.displayName?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white font-semibold text-sm truncate">
+                          {m.displayName}
+                          {m.phoneNumber
+                            ? <span className="text-gray-400 font-normal"> - {m.phoneNumber}</span>
+                            : <span className="text-gray-500 font-normal italic"> - celular no inscrito</span>
+                          }
+                        </div>
+                        <span className={`text-xs px-1.5 py-0.5 rounded border ${cfg.color}`}>
+                          {cfg.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Transaction details */}
+                    {m.receiptData ? (
+                      <div className="px-3 pb-3">
+                        <div className="bg-gray-800 rounded-lg p-3 space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-400 text-xs">Monto verificado</span>
+                            <span className="text-white font-bold text-sm">
+                              ${m.receiptData.amount?.toLocaleString('es-CO')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-400 text-xs">Destino</span>
+                            <span className="text-white text-xs">
+                              {m.receiptData.destType === 'nequi' ? 'Nequi detectado' : m.receiptData.destType === 'nombre' ? 'Nombre detectado' : '—'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-400 text-xs">Fecha envio</span>
+                            <span className="text-white text-xs">
+                              {m.receiptData.submittedAt
+                                ? new Date(m.receiptData.submittedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                                : '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action buttons for uploaded receipts */}
+                        {pStatus === 'uploaded' && (
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => updatePaymentStatus(m, 'confirmed')}
+                              className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
+                            >
+                              Confirmar pago
+                            </button>
+                            <button
+                              onClick={() => updatePaymentStatus(m, 'rejected')}
+                              className="flex-1 text-xs py-2 rounded-lg bg-red-900/50 text-red-400 hover:bg-red-900 border border-red-800 font-bold transition-colors"
+                            >
+                              Rechazar
+                            </button>
+                          </div>
+                        )}
+                        {pStatus === 'rejected' && (
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => updatePaymentStatus(m, 'confirmed')}
+                              className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
+                            >
+                              Confirmar pago
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="px-3 pb-3">
+                        <div className="text-gray-500 text-xs italic">No ha enviado comprobante</div>
+                        {pStatus !== 'confirmed' && (
+                          <button
+                            onClick={() => updatePaymentStatus(m, 'confirmed')}
+                            className="mt-2 text-xs py-1.5 px-3 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
+                          >
+                            Confirmar manualmente
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Prediction Modal */}
@@ -481,6 +708,21 @@ export default function GroupPage() {
           onClose={() => setSelectedMatch(null)}
         />
       )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && myMembership && (
+        <PaymentModal
+          groupId={groupId}
+          memberDocId={myMembership.docId}
+          currentStatus={myPaymentStatus}
+          onUploadComplete={() => {
+            setShowPaymentModal(false)
+            loadMembers()
+          }}
+          onClose={() => setShowPaymentModal(false)}
+        />
+      )}
+
     </div>
   )
 }

@@ -1,4 +1,7 @@
-export default function Leaderboard({ scores, currentUserId }) {
+export default function Leaderboard({ scores, currentUserId, confirmedMemberCount = 0 }) {
+  const CUOTA_POZO = 25000
+  const totalPozo = confirmedMemberCount * CUOTA_POZO
+
   if (!scores || scores.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -11,17 +14,61 @@ export default function Leaderboard({ scores, currentUserId }) {
   const sorted = [...scores].sort((a, b) => {
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
     if (b.correctScores !== a.correctScores) return b.correctScores - a.correctScores
-    return b.correctWinners - a.correctWinners
+    if (b.correctWinners !== a.correctWinners) return b.correctWinners - a.correctWinners
+    // Desempate: quien predijo antes en promedio (menor avgTimestamp = mejor)
+    return (a.avgTimestamp || Infinity) - (b.avgTimestamp || Infinity)
   })
 
   const medals = ['🥇', '🥈', '🥉']
 
+  // Detectar empates en puntos para mostrar indicador de desempate
+  function isTiedWithNeighbor(idx) {
+    const entry = sorted[idx]
+    const prev = sorted[idx - 1]
+    const next = sorted[idx + 1]
+    return (
+      (prev && prev.totalPoints === entry.totalPoints && prev.correctScores === entry.correctScores && prev.correctWinners === entry.correctWinners) ||
+      (next && next.totalPoints === entry.totalPoints && next.correctScores === entry.correctScores && next.correctWinners === entry.correctWinners)
+    )
+  }
+
+  const fmt = (n) => `$${n.toLocaleString('es-CO')}`
+
   return (
     <div className="space-y-2">
+      {/* Prize pool */}
+      {confirmedMemberCount > 0 && (
+        <div className="bg-gradient-to-r from-wc-green/20 to-wc-gold/10 rounded-xl border border-wc-green/40 p-4 mb-2">
+          <div className="text-center mb-3">
+            <div className="text-gray-400 text-xs uppercase tracking-wider">Pozo de premios</div>
+            <div className="text-wc-gold font-black text-2xl">{fmt(totalPozo)}</div>
+            <div className="text-gray-400 text-xs">{confirmedMemberCount} participante{confirmedMemberCount !== 1 ? 's' : ''} confirmado{confirmedMemberCount !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-gray-800/60 rounded-lg p-2">
+              <div className="text-sm">🥇</div>
+              <div className="text-white font-bold text-sm">{fmt(Math.round(totalPozo * 0.5))}</div>
+              <div className="text-gray-500 text-xs">50%</div>
+            </div>
+            <div className="bg-gray-800/60 rounded-lg p-2">
+              <div className="text-sm">🥈</div>
+              <div className="text-white font-bold text-sm">{fmt(Math.round(totalPozo * 0.3))}</div>
+              <div className="text-gray-500 text-xs">30%</div>
+            </div>
+            <div className="bg-gray-800/60 rounded-lg p-2">
+              <div className="text-sm">🥉</div>
+              <div className="text-white font-bold text-sm">{fmt(Math.round(totalPozo * 0.2))}</div>
+              <div className="text-gray-500 text-xs">20%</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {sorted.map((entry, idx) => {
         const isMe = entry.uid === currentUserId
         const medal = medals[idx] || `${idx + 1}`
         const isTop3 = idx < 3
+        const tied = isTiedWithNeighbor(idx)
 
         return (
           <div
@@ -53,6 +100,7 @@ export default function Leaderboard({ scores, currentUserId }) {
               </div>
               <div className="text-xs text-gray-400">
                 {entry.correctWinners} ganadores · {entry.correctScores} exactos
+                {tied && <span className="text-blue-400 ml-1">· desempate por anticipacion</span>}
               </div>
             </div>
 

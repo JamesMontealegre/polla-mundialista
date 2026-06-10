@@ -7,7 +7,8 @@
       "Bash(npx vite build)",
       "Bash(firebase deploy --only firestore:rules)",
       "Bash(firebase projects:list)",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(npm install tesseract.js)"
     ]
   }
 }

@@ -30,9 +30,16 @@ service cloud.firestore {
 
     // Miembros del grupo — cualquier autenticado puede leer, agregar miembros
     // Admin del grupo puede eliminar miembros
+    // Miembros pueden subir comprobante, admin puede confirmar/rechazar pago
     match /groupMembers/{memberId} {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuth() && (
+        // Miembro sube su comprobante
+        (resource.data.uid == request.auth.uid) ||
+        // Admin del grupo gestiona pagos
+        get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.adminIds.hasAny([request.auth.uid])
+      );
       allow delete: if isAuth() && (
         resource.data.uid == request.auth.uid ||
         get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.adminIds.hasAny([request.auth.uid])
