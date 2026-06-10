@@ -6,7 +6,7 @@ import { createWorker } from 'tesseract.js'
 const NEQUI_NUMBER = '3219128803'
 const ADMIN_NAME = 'James Montealegre'
 const EXPECTED_AMOUNT = 30000
-const AMOUNT_TOLERANCE = 2000 // Allow $28,000 - $32,000 to account for OCR misreads
+const AMOUNT_TOLERANCE = 0 // Monto exacto requerido
 
 // Extract amounts from OCR text (handles $30.000, $30,000, $30.000,00, etc.)
 function extractAmounts(text) {

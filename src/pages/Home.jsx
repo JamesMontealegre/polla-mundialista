@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
+import GameRules from '../components/GameRules'
 
 function generateInviteCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -305,6 +306,9 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Rules */}
+        <GameRules />
 
         {isAdmin && (
           <div className="bg-yellow-900/30 border border-yellow-700 rounded-xl p-4">
