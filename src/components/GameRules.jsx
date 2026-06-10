@@ -58,7 +58,7 @@ export default function GameRules({ isPaid = true }) {
             <ol className="space-y-1 text-sm text-gray-300 list-decimal list-inside">
               <li>Mayor cantidad de marcadores exactos</li>
               <li>Mayor cantidad de resultados acertados</li>
-              <li>Quien hizo sus predicciones primero (anticipacion)</li>
+              <li>Quien hizo sus predicciones primero (anticipación)</li>
             </ol>
           </div>
 
@@ -80,9 +80,9 @@ export default function GameRules({ isPaid = true }) {
                   $25.000 van al pozo de premios
                 </div>
                 <div className="pl-4 text-xs text-gray-400">
-                  $5.000 uso de la aplicacion
+                  $5.000 uso de la aplicación
                 </div>
-                <div className="mt-2">Distribucion del pozo:</div>
+                <div className="mt-2">Distribución del pozo:</div>
                 <div className="pl-4 text-xs text-gray-400">
                   1er lugar: 50% · 2do lugar: 30% · 3er lugar: 20%
                 </div>
@@ -96,7 +96,7 @@ export default function GameRules({ isPaid = true }) {
               <p className="text-sm text-gray-300">
                 Este grupo tiene fines recreativos y de entretenimiento.
                 Los premios, reconocimientos o incentivos quedan a
-                consideracion de la persona organizadora. Lo importante
+                consideración de la persona organizadora. Lo importante
                 es disfrutar del Mundial y competir sanamente con amigos
                 y familiares.
               </p>
@@ -113,7 +113,7 @@ export default function GameRules({ isPaid = true }) {
                 </div>
                 <p className="text-sm text-gray-300">
                   Debes pagar la cuota por Nequi y subir el comprobante dentro de
-                  la app. El administrador del grupo revisara y confirmara tu pago
+                  la app. El administrador del grupo revisará y confirmará tu pago
                   para habilitarte a predecir.
                 </p>
               </div>
@@ -130,7 +130,7 @@ export default function GameRules({ isPaid = true }) {
                   Registro de celular
                 </div>
                 <p className="text-sm text-gray-300">
-                  Una vez dentro de la app, registra tu numero de celular en tu
+                  Una vez dentro de la app, registra tu número de celular en tu
                   perfil. Es obligatorio para recibir el pago de premios si ganas.
                 </p>
               </div>
@@ -146,10 +146,10 @@ export default function GameRules({ isPaid = true }) {
             </div>
             <p className="text-sm text-gray-300">
               No necesitas llenar todos los partidos de una vez. Puedes hacer
-              o cambiar tu pronostico en cualquier momento, pero las predicciones
-              se cierran 5 minutos antes del inicio de cada partido. Veras un
+              o cambiar tu pronóstico en cualquier momento, pero las predicciones
+              se cierran 5 minutos antes del inicio de cada partido. Verás un
               contador regresivo cuando se acerque el cierre. Una vez agotado
-              el tiempo, la prediccion se bloquea automaticamente.
+              el tiempo, la prediccion se bloquea automáticamente.
             </p>
           </div>
         </div>
