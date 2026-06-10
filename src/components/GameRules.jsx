@@ -94,8 +94,11 @@ export default function GameRules({ isPaid = true }) {
                 Premios
               </div>
               <p className="text-sm text-gray-300">
-                Este es un grupo gratuito. Los premios y su distribucion son
-                definidos por el organizador o administrador del grupo.
+                Este grupo tiene fines recreativos y de entretenimiento.
+                Los premios, reconocimientos o incentivos quedan a
+                consideracion de la persona organizadora. Lo importante
+                es disfrutar del Mundial y competir sanamente con amigos
+                y familiares.
               </p>
             </div>
           )}
@@ -117,18 +120,22 @@ export default function GameRules({ isPaid = true }) {
             </>
           )}
 
-          <div className="border-t border-gray-700" />
+          {isPaid && (
+            <>
+              <div className="border-t border-gray-700" />
 
-          {/* Celular */}
-          <div>
-            <div className="text-wc-gold font-bold text-sm mb-2">
-              Registro de celular
-            </div>
-            <p className="text-sm text-gray-300">
-              Una vez dentro de la app, registra tu numero de celular en tu
-              perfil. Es obligatorio para recibir el pago de premios si ganas.
-            </p>
-          </div>
+              {/* Celular */}
+              <div>
+                <div className="text-wc-gold font-bold text-sm mb-2">
+                  Registro de celular
+                </div>
+                <p className="text-sm text-gray-300">
+                  Una vez dentro de la app, registra tu numero de celular en tu
+                  perfil. Es obligatorio para recibir el pago de premios si ganas.
+                </p>
+              </div>
+            </>
+          )}
 
           <div className="border-t border-gray-700" />
 
