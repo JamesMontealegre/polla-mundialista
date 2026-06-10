@@ -11,6 +11,7 @@ import MatchCard from '../components/MatchCard'
 import PredictionModal from '../components/PredictionModal'
 import Leaderboard from '../components/Leaderboard'
 import PaymentModal from '../components/PaymentModal'
+import GameRules from '../components/GameRules'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
 const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6 }
@@ -261,7 +262,8 @@ export default function GroupPage() {
   const myMembership = members.find(m => m.uid === user.uid)
   const myPaymentStatus = myMembership?.paymentStatus || 'pending'
   const isGroupAdmin = group?.adminIds?.includes(user.uid)
-  const isPaymentConfirmed = myPaymentStatus === 'confirmed' || isGroupAdmin
+  const isGroupPaid = group?.isPaid !== false
+  const isPaymentConfirmed = !isGroupPaid || myPaymentStatus === 'confirmed' || isGroupAdmin
 
   // Filtrar partidos por fase y grupo
   const filteredMatches = useMemo(() => {
@@ -363,7 +365,7 @@ export default function GroupPage() {
           >
             👥 Grupo
           </button>
-          {isAdmin && (
+          {isGroupPaid && isAdmin && (
             <button
               onClick={() => setActiveTab('payments')}
               className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
@@ -373,12 +375,20 @@ export default function GroupPage() {
               💰 Pagos
             </button>
           )}
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === 'rules' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            📋 Reglas
+          </button>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4">
-        {/* Payment banner (hide for group admin) */}
-        {!isPaymentConfirmed && myMembership && !isGroupAdmin && (
+        {/* Payment banner (hide for group admin and free groups) */}
+        {isGroupPaid && !isPaymentConfirmed && myMembership && !isGroupAdmin && (
           <div className={`rounded-xl p-4 mb-4 border ${
             myPaymentStatus === 'uploaded'
               ? 'bg-blue-900/20 border-blue-700'
@@ -521,6 +531,7 @@ export default function GroupPage() {
               currentUserId={user.uid}
               confirmedMemberCount={members.filter(m => (m.paymentStatus || 'pending') === 'confirmed' && !(group?.adminIds || []).includes(m.uid)).length}
               totalMemberCount={members.filter(m => !(group?.adminIds || []).includes(m.uid)).length}
+              isPaid={isGroupPaid}
             />
           </div>
         )}
@@ -587,8 +598,15 @@ export default function GroupPage() {
           </div>
         )}
 
-        {/* PAYMENTS TAB (admin only) */}
-        {activeTab === 'payments' && isAdmin && (
+        {/* RULES TAB */}
+        {activeTab === 'rules' && (
+          <div>
+            <GameRules isPaid={isGroupPaid} />
+          </div>
+        )}
+
+        {/* PAYMENTS TAB (admin only, paid groups only) */}
+        {activeTab === 'payments' && isGroupPaid && isAdmin && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-bold text-lg">💰 Gestion de Pagos</h2>
@@ -721,7 +739,7 @@ export default function GroupPage() {
       )}
 
       {/* Payment Modal */}
-      {showPaymentModal && myMembership && (
+      {isGroupPaid && showPaymentModal && myMembership && (
         <PaymentModal
           groupId={groupId}
           memberDocId={myMembership.docId}

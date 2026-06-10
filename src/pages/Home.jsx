@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
-import GameRules from '../components/GameRules'
+
 
 function generateInviteCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -19,6 +19,7 @@ export default function Home() {
   const [showCreate, setShowCreate] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [newGroupIsPaid, setNewGroupIsPaid] = useState(true)
   const [deletingGroupId, setDeletingGroupId] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -57,8 +58,8 @@ export default function Home() {
         .filter(d => d.exists())
         .map(d => ({ id: d.id, ...d.data(), myPaymentStatus: membershipMap[d.id]?.paymentStatus || 'pending' }))
 
-      // For admin groups, fetch member payment stats
-      const adminGroups = groupsList.filter(g => g.adminIds?.includes(user.uid))
+      // For paid admin groups, fetch member payment stats
+      const adminGroups = groupsList.filter(g => g.adminIds?.includes(user.uid) && g.isPaid !== false)
       if (adminGroups.length > 0) {
         const memberSnaps = await Promise.all(
           adminGroups.map(g => getDocs(query(collection(db, 'groupMembers'), where('groupId', '==', g.id))))
@@ -93,6 +94,7 @@ export default function Home() {
         createdBy: user.uid,
         createdAt: serverTimestamp(),
         adminIds: [user.uid],
+        isPaid: newGroupIsPaid,
       })
       // Agregar al creador como miembro (auto-confirmado)
       await addDoc(collection(db, 'groupMembers'), {
@@ -105,6 +107,7 @@ export default function Home() {
         receiptURL: null,
       })
       setNewGroupName('')
+      setNewGroupIsPaid(true)
       setShowCreate(false)
       fetchGroups()
     } catch (err) {
@@ -196,9 +199,27 @@ export default function Home() {
               className="w-full bg-gray-800 text-white rounded-lg px-4 py-3 border border-gray-600 focus:border-wc-gold focus:outline-none text-sm"
               maxLength={40}
             />
+            <div className="flex bg-gray-800 rounded-lg p-1">
+              <button
+                onClick={() => setNewGroupIsPaid(true)}
+                className={`flex-1 py-2 rounded-md text-xs font-semibold transition-colors ${
+                  newGroupIsPaid ? 'bg-wc-gold text-wc-dark' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Con inscripcion ($30.000)
+              </button>
+              <button
+                onClick={() => setNewGroupIsPaid(false)}
+                className={`flex-1 py-2 rounded-md text-xs font-semibold transition-colors ${
+                  !newGroupIsPaid ? 'bg-wc-gold text-wc-dark' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Gratuito
+              </button>
+            </div>
             <div className="flex gap-3">
               <button
-                onClick={() => { setShowCreate(false); setNewGroupName('') }}
+                onClick={() => { setShowCreate(false); setNewGroupName(''); setNewGroupIsPaid(true) }}
                 className="flex-1 py-2.5 rounded-lg border border-gray-600 text-gray-300 text-sm"
               >
                 Cancelar
@@ -261,7 +282,9 @@ export default function Home() {
                             <div className="text-white font-bold">{group.name}</div>
                             <div className="text-gray-400 text-xs mt-0.5 flex items-center gap-2 flex-wrap">
                               <span>Código: <span className="text-wc-gold font-mono font-bold">{group.inviteCode}</span></span>
-                              {group.adminIds?.includes(user.uid) ? (
+                              {group.isPaid === false ? (
+                                <span className="text-gray-400">Gratuito</span>
+                              ) : group.adminIds?.includes(user.uid) ? (
                                 <>
                                   <span className="text-wc-green">Admin</span>
                                   {group.paymentTotal != null && (
@@ -306,9 +329,6 @@ export default function Home() {
             </div>
           )}
         </div>
-
-        {/* Rules */}
-        <GameRules />
 
         {isAdmin && (
           <div className="bg-yellow-900/30 border border-yellow-700 rounded-xl p-4">

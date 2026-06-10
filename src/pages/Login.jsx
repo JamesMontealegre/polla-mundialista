@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import GameRules from "../components/GameRules";
 
 export default function Login() {
   const { user, loginWithGoogle, loading } = useAuth();
@@ -39,11 +38,6 @@ export default function Login() {
           <span>🇺🇸</span>
           <span>🇨🇦</span>
           <span>🇲🇽</span>
-        </div>
-
-        {/* Rules */}
-        <div className="mb-8">
-          <GameRules />
         </div>
 
         {/* Login button */}

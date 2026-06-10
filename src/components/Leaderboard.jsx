@@ -1,4 +1,4 @@
-export default function Leaderboard({ scores, currentUserId, confirmedMemberCount = 0, totalMemberCount = 0 }) {
+export default function Leaderboard({ scores, currentUserId, confirmedMemberCount = 0, totalMemberCount = 0, isPaid = true }) {
   const CUOTA_POZO = 25000
   const totalPozo = confirmedMemberCount * CUOTA_POZO
   const estimatedPozo = totalMemberCount * CUOTA_POZO
@@ -16,10 +16,12 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
   const paymentOrder = { confirmed: 0, uploaded: 1, pending: 2, rejected: 3 }
 
   const sorted = [...scores].sort((a, b) => {
-    // Primero: confirmados antes que pendientes
-    const pa = paymentOrder[a.paymentStatus] ?? 2
-    const pb = paymentOrder[b.paymentStatus] ?? 2
-    if (pa !== pb) return pa - pb
+    // Solo ordenar por pago en grupos de pago
+    if (isPaid) {
+      const pa = paymentOrder[a.paymentStatus] ?? 2
+      const pb = paymentOrder[b.paymentStatus] ?? 2
+      if (pa !== pb) return pa - pb
+    }
     // Luego: por puntos y desempate
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
     if (b.correctScores !== a.correctScores) return b.correctScores - a.correctScores
@@ -44,8 +46,8 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
 
   return (
     <div className="space-y-2">
-      {/* Prize pool */}
-      {confirmedMemberCount > 0 && (
+      {/* Prize pool (solo grupos de pago) */}
+      {isPaid && confirmedMemberCount > 0 && (
         <div className="bg-gradient-to-r from-wc-green/20 to-wc-gold/10 rounded-xl border border-wc-green/40 p-4 mb-2">
           <div className="text-center mb-3">
             <div className="text-gray-400 text-xs uppercase tracking-wider">Pozo de premios</div>
@@ -114,10 +116,11 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
               <div className="text-xs text-gray-400 flex items-center gap-1 flex-wrap">
                 <span>{entry.correctWinners} ganadores · {entry.correctScores} exactos</span>
                 {tied && <span className="text-blue-400">· desempate por anticipacion</span>}
-                {entry.paymentStatus === 'confirmed'
-                  ? <span className="text-green-400">· Pago confirmado</span>
-                  : <span className="text-yellow-400">· Pago pendiente</span>
-                }
+                {isPaid && (
+                  entry.paymentStatus === 'confirmed'
+                    ? <span className="text-green-400">· Pago confirmado</span>
+                    : <span className="text-yellow-400">· Pago pendiente</span>
+                )}
               </div>
             </div>
 

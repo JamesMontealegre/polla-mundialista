@@ -61,13 +61,14 @@ export default function JoinGroup() {
       }
 
       // Agregar como miembro
+      const isGroupPaid = groupData.isPaid !== false
       await addDoc(collection(db, 'groupMembers'), {
         groupId,
         uid: user.uid,
         displayName: user.displayName,
         photoURL: user.photoURL || null,
         joinedAt: serverTimestamp(),
-        paymentStatus: 'pending',
+        paymentStatus: isGroupPaid ? 'pending' : 'confirmed',
         receiptURL: null,
       })
 
