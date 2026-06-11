@@ -17,6 +17,12 @@ import StatsTable from '../components/StatsTable'
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
 const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6 }
 
+// Correos de perfiles de prueba que no deben aparecer en tabla, stats ni premios
+const HIDDEN_EMAILS = new Set([
+  'james.montealegre@globant.com',
+  'jamesmontealegre@mintdentistry.com',
+])
+
 export default function GroupPage() {
   const { groupId } = useParams()
   const { user, isAdmin, handlePermissionError } = useAuth()
@@ -74,7 +80,9 @@ export default function GroupPage() {
     )
     userDocs.forEach((uDoc, i) => {
       if (uDoc.exists()) {
-        membersList[i].phoneNumber = uDoc.data().phoneNumber || null
+        const uData = uDoc.data()
+        membersList[i].phoneNumber = uData.phoneNumber || null
+        membersList[i].email = uData.email || null
       }
     })
 
@@ -152,7 +160,10 @@ export default function GroupPage() {
       allPredictions[data.uid][data.matchId] = data
     })
 
-    const adminIds = group?.adminIds || []
+    // UIDs ocultos (admins + perfiles de prueba)
+    const hiddenUids = new Set(
+      members.filter(m => isHiddenMember(m)).map(m => m.uid)
+    )
 
     // Partidos finalizados
     const finishedMatchIds = MATCHES
@@ -165,7 +176,7 @@ export default function GroupPage() {
       const result = matchResults[matchId]
       const correctPreds = []
       for (const [uid, preds] of Object.entries(allPredictions)) {
-        if (adminIds.includes(uid)) continue
+        if (hiddenUids.has(uid)) continue
         const pred = preds[matchId]
         if (!pred) continue
         const { correctWinner } = calculatePoints(pred, {
@@ -185,8 +196,8 @@ export default function GroupPage() {
       }
     }
 
-    // Calcular score por miembro (excluir admins del grupo)
-    const scoresList = members.filter(m => !adminIds.includes(m.uid)).map(member => {
+    // Calcular score por miembro (excluir admins y perfiles de prueba)
+    const scoresList = members.filter(m => !hiddenUids.has(m.uid)).map(member => {
       const memberPreds = allPredictions[member.uid] || {}
       let totalPoints = 0, correctWinners = 0, correctScores = 0
       let timestampSum = 0, timestampCount = 0
@@ -305,6 +316,15 @@ export default function GroupPage() {
   const isGroupPaid = group?.isPaid !== false
   const isPaymentConfirmed = !isGroupPaid || myPaymentStatus === 'confirmed' || isGroupAdmin
 
+  // Helper: miembro oculto (admin del grupo o perfil de prueba)
+  const isHiddenMember = (m) => {
+    const adminIds = group?.adminIds || []
+    return adminIds.includes(m.uid) || HIDDEN_EMAILS.has(m.email)
+  }
+
+  // Participantes visibles (excluye admins y perfiles de prueba)
+  const visibleMembers = useMemo(() => members.filter(m => !isHiddenMember(m)), [members, group])
+
   // Filtrar partidos por fase y grupo
   const filteredMatches = useMemo(() => {
     return MATCHES.filter(m => {
@@ -368,7 +388,7 @@ export default function GroupPage() {
             <div>
               <h1 className="text-2xl font-black text-white">{group.name}</h1>
               <div className="text-gray-400 text-sm mt-1">
-                {members.filter(m => !(group?.adminIds || []).includes(m.uid)).length} participante{members.filter(m => !(group?.adminIds || []).includes(m.uid)).length !== 1 ? 's' : ''}
+                {visibleMembers.length} participante{visibleMembers.length !== 1 ? 's' : ''}
               </div>
             </div>
             <button
@@ -577,13 +597,13 @@ export default function GroupPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-bold text-lg">🏆 Tabla de Posiciones</h2>
-              <span className="text-gray-400 text-xs">{members.filter(m => !(group?.adminIds || []).includes(m.uid)).length} participantes</span>
+              <span className="text-gray-400 text-xs">{visibleMembers.length} participantes</span>
             </div>
             <Leaderboard
               scores={scores}
               currentUserId={user.uid}
-              confirmedMemberCount={members.filter(m => (m.paymentStatus || 'pending') === 'confirmed' && !(group?.adminIds || []).includes(m.uid)).length}
-              totalMemberCount={members.filter(m => !(group?.adminIds || []).includes(m.uid)).length}
+              confirmedMemberCount={visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length}
+              totalMemberCount={visibleMembers.length}
               isPaid={isGroupPaid}
             />
           </div>
@@ -607,11 +627,8 @@ export default function GroupPage() {
               <h2 className="text-white font-bold text-lg">👥 Participantes</h2>
             </div>
             <div className="space-y-2 mb-6">
-              {[...members].sort((a, b) => {
+              {[...visibleMembers].sort((a, b) => {
                 const order = { confirmed: 0, uploaded: 1, pending: 2, rejected: 3 }
-                const isAdminA = group?.adminIds?.includes(a.uid) ? -1 : 0
-                const isAdminB = group?.adminIds?.includes(b.uid) ? -1 : 0
-                if (isAdminA !== isAdminB) return isAdminA - isAdminB
                 return (order[a.paymentStatus] ?? 2) - (order[b.paymentStatus] ?? 2)
               }).map(m => (
                 <div key={m.uid} className="flex items-center gap-3 bg-gray-900 rounded-xl p-3 border border-gray-700">
@@ -627,9 +644,6 @@ export default function GroupPage() {
                       {m.displayName}
                       {m.uid === user.uid && <span className="text-wc-gold text-xs ml-1">(tu)</span>}
                     </div>
-                    {group.adminIds?.includes(m.uid) && (
-                      <div className="text-wc-green text-xs">Admin del grupo</div>
-                    )}
                   </div>
                   {isAdmin && m.uid !== user.uid && (
                     <button
@@ -675,11 +689,11 @@ export default function GroupPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-bold text-lg">💰 Gestion de Pagos</h2>
               <span className="text-gray-400 text-xs">
-                {members.filter(m => (m.paymentStatus || 'pending') === 'confirmed' && !(group?.adminIds || []).includes(m.uid)).length}/{members.filter(m => !(group?.adminIds || []).includes(m.uid)).length} habilitados
+                {visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length}/{visibleMembers.length} habilitados
               </span>
             </div>
             <div className="space-y-2">
-              {[...members].filter(m => !(group?.adminIds || []).includes(m.uid)).sort((a, b) => {
+              {[...visibleMembers].sort((a, b) => {
                 const order = { uploaded: 0, pending: 1, rejected: 2, confirmed: 3 }
                 return (order[a.paymentStatus] ?? 1) - (order[b.paymentStatus] ?? 1)
               }).map(m => {
