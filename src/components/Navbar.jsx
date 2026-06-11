@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import ProfileModal from './ProfileModal'
+import NotificationBell from './NotificationBell'
 
 export default function Navbar() {
   const { user, userProfile, logout, isAdmin, profileComplete } = useAuth()
@@ -49,6 +50,7 @@ export default function Navbar() {
                   ⚙️ Admin
                 </Link>
               )}
+              {!isAdmin && <NotificationBell />}
               <button
                 onClick={() => setShowProfile(true)}
                 className="flex items-center gap-2 relative hover:opacity-80 transition-opacity"

@@ -64,5 +64,18 @@ service cloud.firestore {
         get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.adminIds.hasAny([request.auth.uid])
       );
     }
+
+    // Notificaciones (historial admin) — solo admin crea, todos leen
+    match /notifications/{notifId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+    }
+
+    // Bandeja de notificaciones por usuario
+    match /userNotifications/{docId} {
+      allow read: if isAuth() && resource.data.userId == request.auth.uid;
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+    }
   }
 }

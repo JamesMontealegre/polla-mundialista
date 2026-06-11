@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  collection, query, where, getDocs, addDoc, doc, getDoc, deleteDoc, serverTimestamp
+  collection, query, where, getDocs, addDoc, doc, getDoc, deleteDoc, serverTimestamp, orderBy, limit
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
+import { MATCHES } from '../data/matches'
 
 
 function generateInviteCode() {
@@ -22,6 +23,14 @@ export default function Home() {
   const [newGroupIsPaid, setNewGroupIsPaid] = useState(true)
   const [deletingGroupId, setDeletingGroupId] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  // Notification state (admin)
+  const [showNotifForm, setShowNotifForm] = useState(false)
+  const [notifType, setNotifType] = useState('info')
+  const [notifTitle, setNotifTitle] = useState('')
+  const [notifMessage, setNotifMessage] = useState('')
+  const [sendingNotif, setSendingNotif] = useState(false)
+  const [sendingFollowup, setSendingFollowup] = useState(false)
+  const [notifSuccess, setNotifSuccess] = useState('')
 
   useEffect(() => {
     fetchGroups()
@@ -150,6 +159,178 @@ export default function Home() {
     setDeleting(false)
   }
 
+  // --- Notification helpers (admin only) ---
+
+  async function getUniqueUserIds(filter) {
+    const snap = await getDocs(collection(db, 'groupMembers'))
+    const members = snap.docs.map(d => d.data())
+    const groupSnap = await getDocs(collection(db, 'groups'))
+    const groupMap = {}
+    groupSnap.docs.forEach(d => { groupMap[d.id] = d.data() })
+
+    const uidSet = new Set()
+    members.forEach(m => {
+      if (filter === 'all') {
+        uidSet.add(m.uid)
+      } else if (filter === 'payment_pending') {
+        const group = groupMap[m.groupId]
+        const isGroupPaid = group?.isPaid !== false
+        const isGrpAdmin = group?.adminIds?.includes(m.uid)
+        if (isGroupPaid && !isGrpAdmin && (m.paymentStatus || 'pending') !== 'confirmed') {
+          uidSet.add(m.uid)
+        }
+      }
+    })
+    return [...uidSet]
+  }
+
+  async function sendNotification() {
+    if (!notifTitle.trim() || !notifMessage.trim()) return
+    setSendingNotif(true)
+    try {
+      const targetType = notifType === 'payment' ? 'payment_pending' : 'all'
+      const userIds = await getUniqueUserIds(targetType)
+
+      const notifRef = await addDoc(collection(db, 'notifications'), {
+        type: notifType,
+        title: notifTitle.trim(),
+        message: notifMessage.trim(),
+        createdAt: serverTimestamp(),
+        createdBy: user.uid,
+        targetType,
+        targetUserIds: userIds,
+      })
+
+      await Promise.all(
+        userIds.map(uid =>
+          addDoc(collection(db, 'userNotifications'), {
+            userId: uid,
+            notificationId: notifRef.id,
+            type: notifType,
+            title: notifTitle.trim(),
+            message: notifMessage.trim(),
+            createdAt: serverTimestamp(),
+            read: false,
+          })
+        )
+      )
+
+      setNotifTitle('')
+      setNotifMessage('')
+      setNotifType('info')
+      setShowNotifForm(false)
+      setNotifSuccess(`Notificación enviada a ${userIds.length} usuario${userIds.length !== 1 ? 's' : ''}`)
+      setTimeout(() => setNotifSuccess(''), 3000)
+    } catch (err) {
+      console.error('Error enviando notificación:', err)
+      setNotifSuccess('Error al enviar la notificación')
+      setTimeout(() => setNotifSuccess(''), 3000)
+    }
+    setSendingNotif(false)
+  }
+
+  async function sendFollowupReminder() {
+    setSendingFollowup(true)
+    try {
+      const now = new Date()
+      const colombiaOffset = -5 * 60
+      const localNow = new Date(now.getTime() + (colombiaOffset + now.getTimezoneOffset()) * 60000)
+      const yesterday = new Date(localNow)
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+      const yesterdayMatches = MATCHES.filter(m => {
+        const matchDate = new Date(m.date)
+        const matchLocal = new Date(matchDate.getTime() + (colombiaOffset + matchDate.getTimezoneOffset()) * 60000)
+        return matchLocal.toISOString().split('T')[0] === yesterdayStr
+      })
+
+      if (yesterdayMatches.length === 0) {
+        setNotifSuccess('No hubo partidos ayer. No se enviaron recordatorios.')
+        setTimeout(() => setNotifSuccess(''), 3000)
+        setSendingFollowup(false)
+        return
+      }
+
+      const yesterdayMatchIds = yesterdayMatches.map(m => m.id)
+
+      const membersSnap = await getDocs(collection(db, 'groupMembers'))
+      const members = membersSnap.docs.map(d => d.data())
+      const groupSnap = await getDocs(collection(db, 'groups'))
+      const groupMap = {}
+      groupSnap.docs.forEach(d => { groupMap[d.id] = d.data() })
+
+      const enabledMembers = members.filter(m => {
+        const group = groupMap[m.groupId]
+        if (!group) return false
+        const isGroupPaid = group.isPaid !== false
+        const isGrpAdmin = group.adminIds?.includes(m.uid)
+        if (isGrpAdmin) return false
+        return !isGroupPaid || (m.paymentStatus || 'pending') === 'confirmed'
+      })
+
+      const userGroups = {}
+      enabledMembers.forEach(m => {
+        if (!userGroups[m.uid]) userGroups[m.uid] = []
+        userGroups[m.uid].push(m.groupId)
+      })
+
+      const predSnap = await getDocs(collection(db, 'predictions'))
+      const allPreds = predSnap.docs.map(d => d.data())
+
+      const usersToNotify = []
+      Object.entries(userGroups).forEach(([uid, groupIds]) => {
+        const userPreds = allPreds.filter(p => p.uid === uid)
+        const hasMissing = groupIds.some(gid =>
+          yesterdayMatchIds.some(mid => !userPreds.find(p => p.groupId === gid && p.matchId === mid))
+        )
+        if (hasMissing) usersToNotify.push(uid)
+      })
+
+      if (usersToNotify.length === 0) {
+        setNotifSuccess('Todos los participantes hicieron sus pronósticos ayer.')
+        setTimeout(() => setNotifSuccess(''), 3000)
+        setSendingFollowup(false)
+        return
+      }
+
+      const title = '¡No olvides tus pronósticos!'
+      const message = 'Ayer hubo partidos y no registraste todos tus pronósticos. Mantente pendiente de la app para seguir en competencia.'
+
+      const notifRef = await addDoc(collection(db, 'notifications'), {
+        type: 'followup',
+        title,
+        message,
+        createdAt: serverTimestamp(),
+        createdBy: 'system',
+        targetType: 'user',
+        targetUserIds: usersToNotify,
+      })
+
+      await Promise.all(
+        usersToNotify.map(uid =>
+          addDoc(collection(db, 'userNotifications'), {
+            userId: uid,
+            notificationId: notifRef.id,
+            type: 'followup',
+            title,
+            message,
+            createdAt: serverTimestamp(),
+            read: false,
+          })
+        )
+      )
+
+      setNotifSuccess(`Recordatorio enviado a ${usersToNotify.length} usuario${usersToNotify.length !== 1 ? 's' : ''}`)
+      setTimeout(() => setNotifSuccess(''), 4000)
+    } catch (err) {
+      console.error('Error enviando seguimiento:', err)
+      setNotifSuccess('Error al enviar recordatorios')
+      setTimeout(() => setNotifSuccess(''), 3000)
+    }
+    setSendingFollowup(false)
+  }
+
   return (
     <div className="min-h-screen bg-wc-dark">
       {/* Hero */}
@@ -165,7 +346,7 @@ export default function Home() {
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Quick actions */}
-        <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        <div className={`grid gap-3 ${!isAdmin ? 'grid-cols-1' : 'grid-cols-1'}`}>
           {isAdmin && (
             <button
               onClick={() => setShowCreate(true)}
@@ -176,14 +357,16 @@ export default function Home() {
               <div className="text-xs text-green-200 mt-0.5">Invita a tus amigos</div>
             </button>
           )}
-          <button
-            onClick={() => navigate('/join')}
-            className="bg-gray-800 text-white rounded-xl p-4 text-left hover:bg-gray-700 transition-colors border border-gray-700"
-          >
-            <div className="text-2xl mb-1">🔗</div>
-            <div className="font-bold text-sm">Unirse a Grupo</div>
-            <div className="text-xs text-gray-400 mt-0.5">Con código de invitación</div>
-          </button>
+          {!isAdmin && (
+            <button
+              onClick={() => navigate('/join')}
+              className="bg-gray-800 text-white rounded-xl p-4 text-left hover:bg-gray-700 transition-colors border border-gray-700"
+            >
+              <div className="text-2xl mb-1">🔗</div>
+              <div className="font-bold text-sm">Unirse a Grupo</div>
+              <div className="text-xs text-gray-400 mt-0.5">Con código de invitación</div>
+            </button>
+          )}
         </div>
 
         {/* Create group modal */}
@@ -331,19 +514,110 @@ export default function Home() {
         </div>
 
         {isAdmin && (
-          <div className="bg-yellow-900/30 border border-yellow-700 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-yellow-300 font-bold text-sm">⚙️ Panel de Administrador</div>
-                <div className="text-yellow-500 text-xs mt-0.5">Actualiza resultados de partidos</div>
+          <div className="space-y-3">
+            <div className="text-yellow-300 font-bold text-sm">⚙️ Panel de Administrador</div>
+
+            {notifSuccess && (
+              <div className="bg-green-900 border border-green-600 text-green-300 text-sm px-4 py-3 rounded-xl text-center">
+                {notifSuccess}
               </div>
+            )}
+
+            {/* Two action buttons */}
+            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => navigate('/admin')}
-                className="bg-yellow-700 hover:bg-yellow-600 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors"
+                className="bg-yellow-900/30 border border-yellow-700 rounded-xl p-4 text-left hover:bg-yellow-900/50 transition-colors"
               >
-                Ir al Admin
+                <div className="text-2xl mb-1">📝</div>
+                <div className="text-yellow-300 font-bold text-sm">Actualizar resultados</div>
+                <div className="text-yellow-600 text-xs mt-0.5">Marcadores de partidos</div>
+              </button>
+              <button
+                onClick={() => setShowNotifForm(!showNotifForm)}
+                className={`border rounded-xl p-4 text-left transition-colors ${
+                  showNotifForm
+                    ? 'bg-yellow-900/50 border-wc-gold'
+                    : 'bg-yellow-900/30 border-yellow-700 hover:bg-yellow-900/50'
+                }`}
+              >
+                <div className="text-2xl mb-1">🔔</div>
+                <div className="text-yellow-300 font-bold text-sm">Enviar notificaciones</div>
+                <div className="text-yellow-600 text-xs mt-0.5">Mensajes a participantes</div>
               </button>
             </div>
+
+            {/* Inline notification form */}
+            {showNotifForm && (
+              <div className="bg-gray-900 rounded-xl border border-yellow-700 p-5 space-y-4">
+                {/* Tipo */}
+                <div className="flex bg-gray-800 rounded-lg p-1">
+                  <button
+                    onClick={() => setNotifType('info')}
+                    className={`flex-1 py-2 rounded-md text-xs font-semibold transition-colors ${
+                      notifType === 'info' ? 'bg-wc-gold text-wc-dark' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    📢 Informativo
+                  </button>
+                  <button
+                    onClick={() => setNotifType('payment')}
+                    className={`flex-1 py-2 rounded-md text-xs font-semibold transition-colors ${
+                      notifType === 'payment' ? 'bg-wc-gold text-wc-dark' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    💰 Pago pendiente
+                  </button>
+                </div>
+
+                <p className="text-gray-500 text-xs">
+                  {notifType === 'info'
+                    ? 'Se enviará a todos los participantes de todos los grupos.'
+                    : 'Se enviará solo a usuarios con pago pendiente en grupos de pago.'}
+                </p>
+
+                <input
+                  type="text"
+                  placeholder="Título de la notificación"
+                  value={notifTitle}
+                  onChange={e => setNotifTitle(e.target.value)}
+                  className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-600 focus:border-wc-gold focus:outline-none text-sm"
+                  maxLength={80}
+                />
+                <textarea
+                  placeholder="Mensaje..."
+                  value={notifMessage}
+                  onChange={e => setNotifMessage(e.target.value)}
+                  className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-600 focus:border-wc-gold focus:outline-none text-sm resize-none"
+                  rows={3}
+                  maxLength={300}
+                />
+                <button
+                  onClick={sendNotification}
+                  disabled={!notifTitle.trim() || !notifMessage.trim() || sendingNotif}
+                  className="w-full py-2.5 rounded-lg bg-wc-gold text-wc-dark font-bold text-sm disabled:opacity-50 hover:bg-yellow-400 transition-colors"
+                >
+                  {sendingNotif ? 'Enviando...' : 'Enviar notificación'}
+                </button>
+
+                <div className="border-t border-gray-700" />
+
+                {/* Seguimiento */}
+                <div>
+                  <div className="text-white font-bold text-sm mb-2">Recordatorio de pronósticos</div>
+                  <p className="text-gray-500 text-xs mb-3">
+                    Detecta usuarios que no hicieron pronóstico en los partidos de ayer y les envía un recordatorio.
+                  </p>
+                  <button
+                    onClick={sendFollowupReminder}
+                    disabled={sendingFollowup}
+                    className="w-full py-2.5 rounded-lg bg-wc-green text-white font-bold text-sm disabled:opacity-50 hover:bg-green-700 transition-colors"
+                  >
+                    {sendingFollowup ? 'Analizando y enviando...' : '⚽ Enviar recordatorio de pronósticos de ayer'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

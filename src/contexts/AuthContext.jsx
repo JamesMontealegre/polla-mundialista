@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../firebase'
 
 const AuthContext = createContext(null)
@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [permissionError, setPermissionError] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   // Llamar desde cualquier página cuando Firestore devuelve permission-denied
   const handlePermissionError = useCallback(() => {
@@ -76,6 +77,25 @@ export function AuthProvider({ children }) {
     return unsubscribe
   }, [])
 
+  // Listener de notificaciones no leídas
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0)
+      return
+    }
+    const q = query(
+      collection(db, 'userNotifications'),
+      where('userId', '==', user.uid),
+      where('read', '==', false)
+    )
+    const unsub = onSnapshot(q, (snap) => {
+      setUnreadCount(snap.size)
+    }, (err) => {
+      console.error('Error escuchando notificaciones:', err)
+    })
+    return unsub
+  }, [user])
+
   const loginWithGoogle = () => signInWithPopup(auth, googleProvider)
   const logout = () => signOut(auth)
 
@@ -119,7 +139,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, loginWithGoogle, logout, isAdmin, profileComplete, updateProfile, handlePermissionError }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, loginWithGoogle, logout, isAdmin, profileComplete, updateProfile, handlePermissionError, unreadCount }}>
       {children}
     </AuthContext.Provider>
   )
