@@ -100,6 +100,9 @@ export default function AdminPanel() {
       }
     }))
 
+    // Invalidar cache para que GroupPage cargue datos frescos
+    sessionStorage.removeItem('matchResults')
+
     setSaving(false)
     setEditingMatch(null)
     setSuccessMsg(`✅ Resultado guardado: ${editingMatch.team1} ${team1Goals}-${team2Goals} ${editingMatch.team2}`)
@@ -117,6 +120,7 @@ export default function AdminPanel() {
       ...prev,
       [matchId]: { ...prev[matchId], team1Goals: null, team2Goals: null, isFinished: false }
     }))
+    sessionStorage.removeItem('matchResults')
   }
 
   // Update team names for knockout stage
