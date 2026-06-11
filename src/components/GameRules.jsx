@@ -11,11 +11,11 @@ export default function GameRules({ isPaid = true }) {
             <span className="text-green-400 font-bold font-mono w-16 text-right shrink-0">
               +3 pts
             </span>
-            <span>Marcador exacto (ej.: 2-1 y sale 2-1)</span>
+            <span>Marcador exacto (ej.: pronosticas 2-1 y el resultado es 2-1)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-blue-400 font-bold font-mono w-16 text-right shrink-0">
-              +1 pts
+              +1 pt
             </span>
             <span>Acertar ganador o empate sin marcador exacto</span>
           </div>
@@ -23,9 +23,93 @@ export default function GameRules({ isPaid = true }) {
             <span className="text-red-400 font-bold font-mono w-16 text-right shrink-0">
               0 pts
             </span>
-            <span>No acertar resultado</span>
+            <span>No acertar el resultado</span>
           </div>
         </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Si apuestas por marcador y no aciertas el marcador exacto, pero el equipo
+          que elegiste como ganador efectivamente gana, sumas +1 punto. Tu pronóstico
+          se contabiliza como resultado acertado, no como marcador exacto.
+        </p>
+      </div>
+
+      <div className="border-t border-gray-700" />
+
+      {/* Tipos de pronóstico */}
+      <div>
+        <div className="text-wc-gold font-bold text-sm mb-2">
+          Tipos de pronóstico
+        </div>
+        <div className="text-sm text-gray-300 space-y-1.5">
+          <p>
+            Para cada partido puedes elegir <span className="text-white font-semibold">un solo criterio</span> de
+            pronóstico:
+          </p>
+          <ul className="list-disc list-inside space-y-1 pl-1">
+            <li>
+              <span className="text-white font-semibold">Marcador exacto:</span> indicas
+              el resultado con goles (ej.: 2-1). Si aciertas sumas +3, si fallas el
+              marcador pero aciertas el ganador sumas +1.
+            </li>
+            <li>
+              <span className="text-white font-semibold">Solo resultado:</span> eliges
+              únicamente quién gana o si hay empate. El máximo que puedes sumar es +1.
+            </li>
+          </ul>
+          <p className="text-xs text-gray-400 mt-1">
+            No es necesario marcar ambos criterios; elige el que prefieras para cada partido.
+          </p>
+        </div>
+      </div>
+
+      <div className="border-t border-gray-700" />
+
+      {/* Predicciones flexibles */}
+      <div>
+        <div className="text-wc-gold font-bold text-sm mb-2">
+          Predicciones flexibles
+        </div>
+        <p className="text-sm text-gray-300">
+          No necesitas realizar todos los pronósticos de una vez. Puedes hacer
+          o cambiar tu pronóstico en cualquier momento, siempre y cuando lo hagas
+          antes de que el partido comience. La opción de predecir desaparece
+          5 minutos antes del inicio del encuentro y, una vez agotado el tiempo,
+          la predicción se bloquea automáticamente.
+        </p>
+      </div>
+
+      <div className="border-t border-gray-700" />
+
+      {/* Anticipación */}
+      <div>
+        <div className="text-wc-gold font-bold text-sm mb-2">
+          Anticipación
+        </div>
+        <p className="text-sm text-gray-300">
+          Por cada partido, la persona que haya acertado el resultado y lo haya
+          pronosticado primero (según la fecha y hora del pronóstico) recibe
+          <span className="text-blue-400 font-semibold"> +1 punto de anticipación</span>.
+          Solo una persona por partido puede obtener este punto. Si nadie acierta,
+          el punto no se otorga. La anticipación se refleja en la pestaña
+          «Así vamos» y sirve como criterio de desempate.
+        </p>
+      </div>
+
+      <div className="border-t border-gray-700" />
+
+      {/* No participación */}
+      <div>
+        <div className="text-wc-gold font-bold text-sm mb-2">
+          No participación
+        </div>
+        <p className="text-sm text-gray-300">
+          Si un partido finaliza y no registraste ningún pronóstico, se te suma
+          <span className="text-red-400 font-semibold"> +1 de no participación (NP)</span>.
+          Este indicador es importante: ante un empate en puntos, el participante
+          con menor cantidad de partidos sin pronosticar tendrá ventaja sobre
+          quien tenga más ausencias. Mantente al día con tus pronósticos para
+          no perder posiciones.
+        </p>
       </div>
 
       <div className="border-t border-gray-700" />
@@ -38,7 +122,8 @@ export default function GameRules({ isPaid = true }) {
         <ol className="space-y-1 text-sm text-gray-300 list-decimal list-inside">
           <li>Mayor cantidad de marcadores exactos</li>
           <li>Mayor cantidad de resultados acertados</li>
-          <li>Quien hizo sus predicciones primero (anticipación)</li>
+          <li>Menor cantidad de partidos sin participar</li>
+          <li>Mayor cantidad de puntos de anticipación</li>
         </ol>
       </div>
 
@@ -117,22 +202,6 @@ export default function GameRules({ isPaid = true }) {
           </div>
         </>
       )}
-
-      <div className="border-t border-gray-700" />
-
-      {/* Predicciones flexibles */}
-      <div>
-        <div className="text-wc-gold font-bold text-sm mb-2">
-          Predicciones flexibles
-        </div>
-        <p className="text-sm text-gray-300">
-          No necesitas llenar todos los partidos de una vez. Puedes hacer
-          o cambiar tu pronóstico en cualquier momento, pero las predicciones
-          se cierran 5 minutos antes del inicio de cada partido. Verás un
-          contador regresivo cuando se acerque el cierre. Una vez agotado
-          el tiempo, la predicción se bloquea automáticamente.
-        </p>
-      </div>
     </div>
   )
 }

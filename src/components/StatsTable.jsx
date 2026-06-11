@@ -18,8 +18,8 @@ export default function StatsTable({ scores, currentUserId }) {
   const columns = [
     { key: 'correctWinners', label: 'PG', title: 'Partidos ganados', color: 'text-white' },
     { key: 'correctScores', label: 'PE', title: 'Partidos exactos', color: 'text-green-400' },
-    { key: 'noParticipation', label: 'NP', title: 'No participacion', color: 'text-red-400' },
-    { key: 'anticipation', label: 'AN', title: 'Anticipacion', color: 'text-blue-400' },
+    { key: 'noParticipation', label: 'NP', title: 'No participación', color: 'text-red-400' },
+    { key: 'anticipation', label: 'AN', title: 'Anticipación', color: 'text-blue-400' },
     { key: 'totalPoints', label: 'P', title: 'Puntos totales', color: 'text-wc-gold font-bold' },
   ]
 
@@ -89,7 +89,7 @@ export default function StatsTable({ scores, currentUserId }) {
         <span><span className="text-white">PG</span> Ganados</span>
         <span><span className="text-green-400">PE</span> Exactos</span>
         <span><span className="text-red-400">NP</span> Sin participar</span>
-        <span><span className="text-blue-400">AN</span> Anticipacion</span>
+        <span><span className="text-blue-400">AN</span> Anticipación</span>
         <span><span className="text-wc-gold">P</span> Puntos</span>
       </div>
     </div>
