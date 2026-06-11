@@ -26,7 +26,8 @@ export default function GroupPage() {
   const [group, setGroup] = useState(null)
   const [members, setMembers] = useState([])
   const [matchResults, setMatchResults] = useState({}) // matchId → { team1Goals, team2Goals, isFinished }
-  const [predictions, setPredictions] = useState({}) // matchId → prediction
+  const [predictions, setPredictions] = useState({}) // matchId → prediction (mis predicciones)
+  const [allPredictions, setAllPredictions] = useState({}) // uid → { matchId → prediction }
   const [scores, setScores] = useState([]) // [{uid, displayName, totalPoints, ...}]
   const [loading, setLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState(null)
@@ -47,7 +48,7 @@ export default function GroupPage() {
         loadGroup(),
         loadMembers(),
         loadMatchResults(),
-        loadMyPredictions(),
+        loadAllPredictions(),
       ])
     } catch (err) {
       console.error(err)
@@ -116,45 +117,48 @@ export default function GroupPage() {
   }
 
   async function loadMatchResults() {
+    // Cache en sessionStorage (5 min TTL)
+    const cacheKey = 'matchResults'
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      try {
+        const { data, ts } = JSON.parse(cached)
+        if (Date.now() - ts < 5 * 60_000) {
+          setMatchResults(data)
+          return
+        }
+      } catch { /* cache corrupto, recargar */ }
+    }
     const snap = await getDocs(collection(db, 'matches'))
     const results = {}
     snap.docs.forEach(d => { results[d.id] = d.data() })
     setMatchResults(results)
+    sessionStorage.setItem(cacheKey, JSON.stringify({ data: results, ts: Date.now() }))
   }
 
-  async function loadMyPredictions() {
-    const q = query(
-      collection(db, 'predictions'),
-      where('groupId', '==', groupId),
-      where('uid', '==', user.uid)
-    )
-    const snap = await getDocs(q)
-    const preds = {}
-    snap.docs.forEach(d => {
-      const data = d.data()
-      preds[data.matchId] = data
-    })
-    setPredictions(preds)
-  }
-
-  // Calcular scores en tiempo real
-  useEffect(() => {
-    if (members.length === 0) return
-    computeScores()
-  }, [members, matchResults, predictions])
-
-  async function computeScores() {
-    // Cargar predicciones de todos los miembros
-    const allPredictions = {}
-
+  async function loadAllPredictions() {
+    // Carga TODAS las predicciones del grupo una sola vez
     const q = query(collection(db, 'predictions'), where('groupId', '==', groupId))
     const snap = await getDocs(q)
+    const all = {}
+    const mine = {}
     snap.docs.forEach(d => {
       const data = d.data()
-      if (!allPredictions[data.uid]) allPredictions[data.uid] = {}
-      allPredictions[data.uid][data.matchId] = data
+      if (!all[data.uid]) all[data.uid] = {}
+      all[data.uid][data.matchId] = data
+      if (data.uid === user.uid) mine[data.matchId] = data
     })
+    setAllPredictions(all)
+    setPredictions(mine)
+  }
 
+  // Recalcular scores cuando cambian los datos en memoria (sin Firestore)
+  useEffect(() => {
+    if (members.length === 0 || Object.keys(matchResults).length === 0) return
+    computeScores()
+  }, [members, matchResults, allPredictions])
+
+  function computeScores() {
     // UIDs ocultos (admins + perfiles de prueba)
     const hiddenUids = new Set(
       members.filter(m => isHiddenMember(m)).map(m => m.uid)
@@ -198,7 +202,6 @@ export default function GroupPage() {
       let timestampSum = 0, timestampCount = 0
 
       Object.entries(memberPreds).forEach(([matchId, pred]) => {
-        // Acumular timestamps de predicciones para desempate
         const ts = pred.updatedAt
         if (ts) {
           const millis = ts.toDate ? ts.toDate().getTime() : ts.seconds ? ts.seconds * 1000 : null
@@ -221,11 +224,9 @@ export default function GroupPage() {
 
       const avgTimestamp = timestampCount > 0 ? timestampSum / timestampCount : Infinity
 
-      // NP: partidos finalizados sin predicción
       const predictedFinished = finishedMatchIds.filter(mid => memberPreds[mid]).length
       const noParticipation = finishedMatchIds.length - predictedFinished
 
-      // AN: partidos donde fue el primer predictor correcto
       const anticipation = Object.values(anticipationWinners).filter(uid => uid === member.uid).length
 
       return {
@@ -267,9 +268,12 @@ export default function GroupPage() {
 
     await setDoc(doc(db, 'predictions', predId), predDoc)
 
-    setPredictions(prev => ({
+    // Actualizar localmente (sin re-query a Firestore)
+    const localPred = { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } }
+    setPredictions(prev => ({ ...prev, [match.id]: localPred }))
+    setAllPredictions(prev => ({
       ...prev,
-      [match.id]: { ...predDoc, updatedAt: null }
+      [user.uid]: { ...(prev[user.uid] || {}), [match.id]: localPred }
     }))
   }
 
@@ -281,6 +285,11 @@ export default function GroupPage() {
         const next = { ...prev }
         delete next[matchId]
         return next
+      })
+      setAllPredictions(prev => {
+        const userPreds = { ...(prev[user.uid] || {}) }
+        delete userPreds[matchId]
+        return { ...prev, [user.uid]: userPreds }
       })
     } catch (err) {
       console.error('Error eliminando predicción:', err)

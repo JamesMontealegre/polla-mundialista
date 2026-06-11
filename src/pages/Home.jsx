@@ -74,15 +74,26 @@ export default function Home() {
         const memberSnaps = await Promise.all(
           adminGroups.map(g => getDocs(query(collection(db, 'groupMembers'), where('groupId', '==', g.id))))
         )
-        // Obtener emails de todos los miembros para filtrar perfiles ocultos
+        // Obtener emails para filtrar perfiles ocultos (con cache)
         const allMemberUids = new Set()
         memberSnaps.forEach(snap => snap.docs.forEach(d => allMemberUids.add(d.data().uid)))
-        const uidList = [...allMemberUids]
-        const userDocs = await Promise.all(uidList.map(uid => getDoc(doc(db, 'users', uid))))
-        const emailByUid = {}
-        userDocs.forEach((uDoc, i) => {
-          if (uDoc.exists()) emailByUid[uidList[i]] = uDoc.data().email || null
-        })
+
+        let emailByUid = {}
+        const emailCacheKey = 'emailByUid'
+        try {
+          const cached = JSON.parse(sessionStorage.getItem(emailCacheKey) || '{}')
+          emailByUid = cached
+        } catch { /* ignore */ }
+
+        // Solo buscar UIDs que no esten en cache
+        const uncachedUids = [...allMemberUids].filter(uid => !(uid in emailByUid))
+        if (uncachedUids.length > 0) {
+          const userDocs = await Promise.all(uncachedUids.map(uid => getDoc(doc(db, 'users', uid))))
+          userDocs.forEach((uDoc, i) => {
+            emailByUid[uncachedUids[i]] = uDoc.exists() ? (uDoc.data().email || null) : null
+          })
+          sessionStorage.setItem(emailCacheKey, JSON.stringify(emailByUid))
+        }
 
         adminGroups.forEach((g, i) => {
           const allMembers = memberSnaps[i].docs.map(d => d.data())
