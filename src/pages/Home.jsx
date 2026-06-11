@@ -6,6 +6,7 @@ import {
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { MATCHES } from '../data/matches'
+import { HIDDEN_EMAILS } from '../config/hiddenUsers'
 
 
 function generateInviteCode() {
@@ -73,11 +74,23 @@ export default function Home() {
         const memberSnaps = await Promise.all(
           adminGroups.map(g => getDocs(query(collection(db, 'groupMembers'), where('groupId', '==', g.id))))
         )
+        // Obtener emails de todos los miembros para filtrar perfiles ocultos
+        const allMemberUids = new Set()
+        memberSnaps.forEach(snap => snap.docs.forEach(d => allMemberUids.add(d.data().uid)))
+        const uidList = [...allMemberUids]
+        const userDocs = await Promise.all(uidList.map(uid => getDoc(doc(db, 'users', uid))))
+        const emailByUid = {}
+        userDocs.forEach((uDoc, i) => {
+          if (uDoc.exists()) emailByUid[uidList[i]] = uDoc.data().email || null
+        })
+
         adminGroups.forEach((g, i) => {
           const allMembers = memberSnaps[i].docs.map(d => d.data())
-          const nonAdmins = allMembers.filter(m => !(g.adminIds || []).includes(m.uid))
-          g.paymentConfirmed = nonAdmins.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length
-          g.paymentTotal = nonAdmins.length
+          const visible = allMembers.filter(m =>
+            !(g.adminIds || []).includes(m.uid) && !HIDDEN_EMAILS.has(emailByUid[m.uid])
+          )
+          g.paymentConfirmed = visible.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length
+          g.paymentTotal = visible.length
         })
       }
 

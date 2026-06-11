@@ -26,6 +26,10 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
     if (b.correctScores !== a.correctScores) return b.correctScores - a.correctScores
     if (b.correctWinners !== a.correctWinners) return b.correctWinners - a.correctWinners
+    // Menor NP = mejor (menos partidos sin participar)
+    if ((a.noParticipation ?? 0) !== (b.noParticipation ?? 0)) return (a.noParticipation ?? 0) - (b.noParticipation ?? 0)
+    // Mayor anticipación = mejor
+    if ((b.anticipation ?? 0) !== (a.anticipation ?? 0)) return (b.anticipation ?? 0) - (a.anticipation ?? 0)
     return (a.avgTimestamp || Infinity) - (b.avgTimestamp || Infinity)
   })
 

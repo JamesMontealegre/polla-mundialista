@@ -13,15 +13,10 @@ import Leaderboard from '../components/Leaderboard'
 import PaymentModal from '../components/PaymentModal'
 import GameRules from '../components/GameRules'
 import StatsTable from '../components/StatsTable'
+import { HIDDEN_EMAILS } from '../config/hiddenUsers'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
 const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6 }
-
-// Correos de perfiles de prueba que no deben aparecer en tabla, stats ni premios
-const HIDDEN_EMAILS = new Set([
-  'james.montealegre@globant.com',
-  'jamesmontealegre@mintdentistry.com',
-])
 
 export default function GroupPage() {
   const { groupId } = useParams()

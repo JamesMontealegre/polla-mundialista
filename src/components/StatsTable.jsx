@@ -12,6 +12,8 @@ export default function StatsTable({ scores, currentUserId }) {
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
     if (b.correctScores !== a.correctScores) return b.correctScores - a.correctScores
     if (b.correctWinners !== a.correctWinners) return b.correctWinners - a.correctWinners
+    if ((a.noParticipation ?? 0) !== (b.noParticipation ?? 0)) return (a.noParticipation ?? 0) - (b.noParticipation ?? 0)
+    if ((b.anticipation ?? 0) !== (a.anticipation ?? 0)) return (b.anticipation ?? 0) - (a.anticipation ?? 0)
     return (a.avgTimestamp || Infinity) - (b.avgTimestamp || Infinity)
   })
 
@@ -24,18 +26,25 @@ export default function StatsTable({ scores, currentUserId }) {
   ]
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-700">
-      <table className="w-full text-sm min-w-[480px]">
+    <div className="rounded-xl border border-gray-700 overflow-hidden">
+      <table className="w-full text-sm table-fixed">
+        <colgroup>
+          <col className="w-8" />
+          <col />
+          {columns.map(col => (
+            <col key={col.key} className="w-10" />
+          ))}
+        </colgroup>
         <thead>
           <tr className="bg-gray-800">
-            <th className="py-2.5 px-2 text-center text-gray-500 text-xs w-8">#</th>
-            <th className="py-2.5 px-3 text-left text-gray-400 text-xs uppercase tracking-wider">
+            <th className="py-2.5 px-1 text-center text-gray-500 text-xs">#</th>
+            <th className="py-2.5 px-2 text-left text-gray-400 text-xs uppercase tracking-wider truncate">
               Participante
             </th>
             {columns.map(col => (
               <th
                 key={col.key}
-                className="py-2.5 px-2 text-center text-gray-400 text-xs uppercase tracking-wider"
+                className="py-2.5 px-1 text-center text-gray-400 text-xs uppercase tracking-wider"
                 title={col.title}
               >
                 {col.label}
@@ -53,11 +62,11 @@ export default function StatsTable({ scores, currentUserId }) {
                   isMe ? 'bg-wc-green/20' : idx % 2 === 0 ? 'bg-gray-900' : 'bg-gray-800/40'
                 }`}
               >
-                <td className="py-2.5 px-2 text-center text-gray-500 font-mono text-xs">
+                <td className="py-2 px-1 text-center text-gray-500 font-mono text-xs">
                   {idx + 1}
                 </td>
-                <td className="py-2.5 px-3">
-                  <div className="flex items-center gap-2">
+                <td className="py-2 px-2 overflow-hidden">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     {entry.photoURL ? (
                       <img src={entry.photoURL} alt={entry.displayName} className="w-6 h-6 rounded-full shrink-0" />
                     ) : (
@@ -65,16 +74,16 @@ export default function StatsTable({ scores, currentUserId }) {
                         {entry.displayName?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
-                    <span className={`truncate max-w-[130px] text-sm ${
+                    <span className={`truncate text-sm ${
                       isMe ? 'text-wc-gold font-semibold' : 'text-white'
                     }`}>
                       {entry.displayName}
-                      {isMe && <span className="text-xs ml-1 opacity-70">(tu)</span>}
+                      {isMe && <span className="text-xs ml-0.5 opacity-70">(tu)</span>}
                     </span>
                   </div>
                 </td>
                 {columns.map(col => (
-                  <td key={col.key} className={`py-2.5 px-2 text-center font-mono text-sm ${col.color}`}>
+                  <td key={col.key} className={`py-2 px-1 text-center font-mono text-sm ${col.color}`}>
                     {entry[col.key]}
                   </td>
                 ))}
