@@ -12,6 +12,7 @@ import PredictionModal from '../components/PredictionModal'
 import Leaderboard from '../components/Leaderboard'
 import PaymentModal from '../components/PaymentModal'
 import GameRules from '../components/GameRules'
+import StatsTable from '../components/StatsTable'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
 const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6 }
@@ -151,8 +152,40 @@ export default function GroupPage() {
       allPredictions[data.uid][data.matchId] = data
     })
 
-    // Calcular score por miembro (excluir admins del grupo)
     const adminIds = group?.adminIds || []
+
+    // Partidos finalizados
+    const finishedMatchIds = MATCHES
+      .filter(m => matchResults[m.id]?.isFinished)
+      .map(m => m.id)
+
+    // Anticipación: por cada partido, el primer predictor correcto gana +1
+    const anticipationWinners = {}
+    for (const matchId of finishedMatchIds) {
+      const result = matchResults[matchId]
+      const correctPreds = []
+      for (const [uid, preds] of Object.entries(allPredictions)) {
+        if (adminIds.includes(uid)) continue
+        const pred = preds[matchId]
+        if (!pred) continue
+        const { correctWinner } = calculatePoints(pred, {
+          team1Goals: result.team1Goals,
+          team2Goals: result.team2Goals,
+        })
+        if (correctWinner && pred.updatedAt) {
+          const millis = pred.updatedAt.toDate
+            ? pred.updatedAt.toDate().getTime()
+            : pred.updatedAt.seconds ? pred.updatedAt.seconds * 1000 : Infinity
+          correctPreds.push({ uid, millis })
+        }
+      }
+      if (correctPreds.length > 0) {
+        correctPreds.sort((a, b) => a.millis - b.millis)
+        anticipationWinners[matchId] = correctPreds[0].uid
+      }
+    }
+
+    // Calcular score por miembro (excluir admins del grupo)
     const scoresList = members.filter(m => !adminIds.includes(m.uid)).map(member => {
       const memberPreds = allPredictions[member.uid] || {}
       let totalPoints = 0, correctWinners = 0, correctScores = 0
@@ -162,7 +195,6 @@ export default function GroupPage() {
         // Acumular timestamps de predicciones para desempate
         const ts = pred.updatedAt
         if (ts) {
-          // Firestore Timestamp → millis
           const millis = ts.toDate ? ts.toDate().getTime() : ts.seconds ? ts.seconds * 1000 : null
           if (millis) {
             timestampSum += millis
@@ -181,8 +213,14 @@ export default function GroupPage() {
         if (correctScore) correctScores++
       })
 
-      // Promedio de timestamps (menor = predijo antes)
       const avgTimestamp = timestampCount > 0 ? timestampSum / timestampCount : Infinity
+
+      // NP: partidos finalizados sin predicción
+      const predictedFinished = finishedMatchIds.filter(mid => memberPreds[mid]).length
+      const noParticipation = finishedMatchIds.length - predictedFinished
+
+      // AN: partidos donde fue el primer predictor correcto
+      const anticipation = Object.values(anticipationWinners).filter(uid => uid === member.uid).length
 
       return {
         uid: member.uid,
@@ -193,6 +231,8 @@ export default function GroupPage() {
         correctWinners,
         correctScores,
         avgTimestamp,
+        noParticipation,
+        anticipation,
       }
     })
 
@@ -285,6 +325,11 @@ export default function GroupPage() {
     })
   }, [activeStage, activeGroup])
 
+  const finishedMatchCount = useMemo(() =>
+    MATCHES.filter(m => matchResults[m.id]?.isFinished).length,
+    [matchResults]
+  )
+
   // Partidos con resultados pendientes (para mostrar primero)
   const upcomingMatches = filteredMatches.filter(m => !hasMatchStarted(m))
   const playedMatches = filteredMatches.filter(m => hasMatchStarted(m))
@@ -340,10 +385,10 @@ export default function GroupPage() {
 
       {/* Tabs */}
       <div className="sticky top-[57px] z-40 bg-wc-dark border-b border-gray-800">
-        <div className="max-w-2xl mx-auto px-4 flex">
+        <div className="max-w-2xl mx-auto px-4 flex overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setActiveTab('matches')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'matches' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
@@ -351,15 +396,23 @@ export default function GroupPage() {
           </button>
           <button
             onClick={() => setActiveTab('leaderboard')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'leaderboard' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
             🏆 Tabla
           </button>
           <button
+            onClick={() => setActiveTab('stats')}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === 'stats' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            📊 Asi vamos
+          </button>
+          <button
             onClick={() => setActiveTab('members')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'members' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
@@ -368,7 +421,7 @@ export default function GroupPage() {
           {isGroupPaid && isAdmin && (
             <button
               onClick={() => setActiveTab('payments')}
-              className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'payments' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
               }`}
             >
@@ -377,7 +430,7 @@ export default function GroupPage() {
           )}
           <button
             onClick={() => setActiveTab('rules')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'rules' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
@@ -533,6 +586,17 @@ export default function GroupPage() {
               totalMemberCount={members.filter(m => !(group?.adminIds || []).includes(m.uid)).length}
               isPaid={isGroupPaid}
             />
+          </div>
+        )}
+
+        {/* STATS TAB */}
+        {activeTab === 'stats' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-bold text-lg">📊 Asi vamos</h2>
+              <span className="text-gray-400 text-xs">{finishedMatchCount} partidos jugados</span>
+            </div>
+            <StatsTable scores={scores} currentUserId={user.uid} />
           </div>
         )}
 

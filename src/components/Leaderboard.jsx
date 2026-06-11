@@ -31,17 +31,6 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
 
   const medals = ['🥇', '🥈', '🥉']
 
-  // Detectar empates en puntos para mostrar indicador de desempate
-  function isTiedWithNeighbor(idx) {
-    const entry = sorted[idx]
-    const prev = sorted[idx - 1]
-    const next = sorted[idx + 1]
-    return (
-      (prev && prev.totalPoints === entry.totalPoints && prev.correctScores === entry.correctScores && prev.correctWinners === entry.correctWinners) ||
-      (next && next.totalPoints === entry.totalPoints && next.correctScores === entry.correctScores && next.correctWinners === entry.correctWinners)
-    )
-  }
-
   const fmt = (n) => `$${n.toLocaleString('es-CO')}`
 
   return (
@@ -83,7 +72,6 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
         const isMe = entry.uid === currentUserId
         const medal = medals[idx] || `${idx + 1}`
         const isTop3 = idx < 3
-        const tied = isTiedWithNeighbor(idx)
 
         return (
           <div
@@ -113,15 +101,14 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
               <div className={`font-semibold text-sm truncate ${isMe ? 'text-wc-gold' : 'text-white'}`}>
                 {entry.displayName} {isMe && '(tú)'}
               </div>
-              <div className="text-xs text-gray-400 flex items-center gap-1 flex-wrap">
-                <span>{entry.correctWinners} ganadores · {entry.correctScores} exactos</span>
-                {tied && <span className="text-blue-400">· desempate por anticipacion</span>}
-                {isPaid && (
-                  entry.paymentStatus === 'confirmed'
-                    ? <span className="text-green-400">· Pago confirmado</span>
-                    : <span className="text-yellow-400">· Pago pendiente</span>
-                )}
-              </div>
+              {isPaid && (
+                <div className="text-xs">
+                  {entry.paymentStatus === 'confirmed'
+                    ? <span className="text-green-400">Pago confirmado</span>
+                    : <span className="text-yellow-400">Pago pendiente</span>
+                  }
+                </div>
+              )}
             </div>
 
             {/* Points */}
