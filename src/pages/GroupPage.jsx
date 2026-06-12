@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
-import { MATCHES, STAGE_NAMES, hasMatchStarted, getActiveDateMatches } from '../data/matches'
+import { MATCHES, STAGE_NAMES, FLAGS, hasMatchStarted, getActiveDateMatches } from '../data/matches'
 import { calculatePoints } from '../utils/scoring'
 import MatchCard from '../components/MatchCard'
 import PredictionModal from '../components/PredictionModal'
@@ -14,10 +14,14 @@ import PaymentModal from '../components/PaymentModal'
 import GameRules from '../components/GameRules'
 import StatsTable from '../components/StatsTable'
 import MemberMatchBadges from '../components/MemberMatchBadges'
+import FinalPredictionCard from '../components/FinalPredictionCard'
 import { HIDDEN_EMAILS } from '../config/hiddenUsers'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
 const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6 }
+
+// Deadline: 28 jun 2026 00:00 Colombia (UTC-5) = 28 jun 05:00 UTC
+const FINAL_PRED_DEADLINE = new Date('2026-06-28T05:00:00Z')
 
 export default function GroupPage() {
   const { groupId } = useParams()
@@ -29,6 +33,7 @@ export default function GroupPage() {
   const [matchResults, setMatchResults] = useState({}) // matchId → { team1Goals, team2Goals, isFinished }
   const [predictions, setPredictions] = useState({}) // matchId → prediction (mis predicciones)
   const [allPredictions, setAllPredictions] = useState({}) // uid → { matchId → prediction }
+  const [finalPredictions, setFinalPredictions] = useState({}) // uid → { finalTeam1, finalTeam2, updatedAt }
   const [scores, setScores] = useState([]) // [{uid, displayName, totalPoints, ...}]
   const [loading, setLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState(null)
@@ -143,21 +148,27 @@ export default function GroupPage() {
     const snap = await getDocs(q)
     const all = {}
     const mine = {}
+    const finals = {}
     snap.docs.forEach(d => {
       const data = d.data()
+      if (data.matchId === 'FINALISTS') {
+        finals[data.uid] = data
+        return
+      }
       if (!all[data.uid]) all[data.uid] = {}
       all[data.uid][data.matchId] = data
       if (data.uid === user.uid) mine[data.matchId] = data
     })
     setAllPredictions(all)
     setPredictions(mine)
+    setFinalPredictions(finals)
   }
 
   // Recalcular scores cuando cambian los datos en memoria (sin Firestore)
   useEffect(() => {
     if (members.length === 0 || Object.keys(matchResults).length === 0) return
     computeScores()
-  }, [members, matchResults, allPredictions])
+  }, [members, matchResults, allPredictions, finalPredictions])
 
   function computeScores() {
     // UIDs ocultos (admins + perfiles de prueba)
@@ -230,17 +241,32 @@ export default function GroupPage() {
 
       const anticipation = Object.values(anticipationWinners).filter(uid => uid === member.uid).length
 
+      // Bonus +15 por acertar finalistas
+      let finalistBonus = 0
+      const finalMatch = matchResults['FINAL']
+      if (finalMatch?.isFinished) {
+        const fp = finalPredictions[member.uid]
+        if (fp) {
+          const actualTeams = new Set([finalMatch.team1, finalMatch.team2])
+          const predTeams = new Set([fp.finalTeam1, fp.finalTeam2])
+          if (actualTeams.size === 2 && [...predTeams].every(t => actualTeams.has(t))) {
+            finalistBonus = 15
+          }
+        }
+      }
+
       return {
         uid: member.uid,
         displayName: member.displayName,
         photoURL: member.photoURL,
         paymentStatus: member.paymentStatus || 'pending',
-        totalPoints,
+        totalPoints: totalPoints + finalistBonus,
         correctWinners,
         correctScores,
         avgTimestamp,
         noParticipation,
         anticipation,
+        finalistBonus,
       }
     })
 
@@ -300,6 +326,23 @@ export default function GroupPage() {
     }
   }
 
+  async function saveFinalPrediction(finalTeam1, finalTeam2) {
+    const predId = `${groupId}_FINALISTS_${user.uid}`
+    const predDoc = {
+      groupId,
+      matchId: 'FINALISTS',
+      uid: user.uid,
+      finalTeam1,
+      finalTeam2,
+      updatedAt: serverTimestamp(),
+    }
+    await setDoc(doc(db, 'predictions', predId), predDoc)
+    setFinalPredictions(prev => ({
+      ...prev,
+      [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } }
+    }))
+  }
+
   const copyInviteCode = () => {
     if (!group) return
     navigator.clipboard.writeText(group.inviteCode)
@@ -356,6 +399,12 @@ export default function GroupPage() {
   )
 
   const { matches: activeDateMatches, fechaNumber } = useMemo(() => getActiveDateMatches(), [])
+
+  // La Final: deadline y revelacion
+  const isFinalistLocked = Date.now() >= FINAL_PRED_DEADLINE.getTime()
+  const isFinalistRevealed = MATCHES.some(m => m.stage === 'qf' && hasMatchStarted(m))
+  // Revelar predicciones en pestaña Grupo: 28 jun 13:00 COL = 28 jun 18:00 UTC
+  const isFinalistVisibleInGroup = Date.now() >= new Date('2026-06-28T18:00:00Z').getTime()
 
   // Partidos con resultados pendientes (para mostrar primero)
   const upcomingMatches = filteredMatches.filter(m => !hasMatchStarted(m))
@@ -436,6 +485,14 @@ export default function GroupPage() {
             }`}
           >
             📊 Asi vamos
+          </button>
+          <button
+            onClick={() => setActiveTab('final')}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === 'final' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            🏟️ La Final
           </button>
           <button
             onClick={() => setActiveTab('members')}
@@ -627,6 +684,31 @@ export default function GroupPage() {
           </div>
         )}
 
+        {/* FINAL TAB */}
+        {activeTab === 'final' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-bold text-lg">🏟️ La Final</h2>
+              {!isFinalistLocked && (
+                <span className="text-gray-400 text-xs">
+                  Cierra 28 jun 12:00 AM
+                </span>
+              )}
+            </div>
+            <FinalPredictionCard
+              prediction={finalPredictions[user.uid]}
+              onSave={saveFinalPrediction}
+              isLocked={isFinalistLocked}
+              isRevealed={isFinalistRevealed}
+              allFinalPredictions={finalPredictions}
+              visibleMembers={visibleMembers}
+              currentUserId={user.uid}
+              finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
+              deadline={FINAL_PRED_DEADLINE.getTime()}
+            />
+          </div>
+        )}
+
         {/* MEMBERS TAB */}
         {activeTab === 'members' && (
           <div>
@@ -652,12 +734,24 @@ export default function GroupPage() {
                         {m.displayName?.[0]?.toUpperCase()}
                       </div>
                     )}
-                    <div className="flex-1">
-                      <div className="text-white font-semibold text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-semibold text-sm truncate">
                         {m.displayName}
                         {m.uid === user.uid && <span className="text-wc-gold text-xs ml-1">(tu)</span>}
                       </div>
                     </div>
+                    {isFinalistVisibleInGroup && (() => {
+                      const fp = finalPredictions[m.uid]
+                      if (!fp) return null
+                      return (
+                        <div className="flex items-center gap-1 shrink-0 bg-purple-900/30 border border-purple-800/50 rounded-lg px-2 py-1">
+                          <span className="text-purple-400 text-[10px] font-bold">Final</span>
+                          <span className="text-sm">{FLAGS[fp.finalTeam1]}</span>
+                          <span className="text-gray-500 text-[10px]">vs</span>
+                          <span className="text-sm">{FLAGS[fp.finalTeam2]}</span>
+                        </div>
+                      )
+                    })()}
                     {isAdmin && m.uid !== user.uid && (
                       <button
                         onClick={() => removeMember(m)}

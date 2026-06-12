@@ -7,9 +7,13 @@
  * Calcula los puntos de una predicción dado el resultado real
  * @param {Object} prediction - { predictionType?: 'score'|'outcome', team1Goals?, team2Goals?, outcome? }
  * @param {Object} result - { team1Goals: number, team2Goals: number }
+ * @param {Object} [options] - { exactPoints?: number, winnerPoints?: number }
  * @returns {{ points: number, correctWinner: boolean, correctScore: boolean }}
  */
-export function calculatePoints(prediction, result) {
+export function calculatePoints(prediction, result, options = {}) {
+  const exactPoints = options.exactPoints ?? 3
+  const winnerPoints = options.winnerPoints ?? 1
+
   if (
     result.team1Goals === null || result.team1Goals === undefined ||
     result.team2Goals === null || result.team2Goals === undefined
@@ -23,7 +27,7 @@ export function calculatePoints(prediction, result) {
   // Predicción solo resultado
   if (predType === 'outcome') {
     const correctWinner = prediction.outcome === realOutcome
-    return { points: correctWinner ? 1 : 0, correctWinner, correctScore: false }
+    return { points: correctWinner ? winnerPoints : 0, correctWinner, correctScore: false }
   }
 
   // Predicción de marcador
@@ -42,8 +46,8 @@ export function calculatePoints(prediction, result) {
     prediction.team2Goals === result.team2Goals
 
   let points = 0
-  if (correctScore) points = 3
-  else if (correctWinner) points = 1
+  if (correctScore) points = exactPoints
+  else if (correctWinner) points = winnerPoints
 
   return { points, correctWinner, correctScore }
 }

@@ -114,6 +114,33 @@ export default function GameRules({ isPaid = true }) {
 
       <div className="border-t border-gray-700" />
 
+      {/* Predicción de la final */}
+      <div>
+        <div className="text-wc-gold font-bold text-sm mb-2">
+          Predicción de la final
+        </div>
+        <div className="text-sm text-gray-300 space-y-1.5">
+          <p>
+            En la pestaña <span className="text-white font-semibold">«La Final»</span> puedes
+            seleccionar los dos equipos que crees que llegarán a la final del Mundial.
+            Si aciertas ambos finalistas, sumarás puntos bonus al final de la polla.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-purple-400 font-bold font-mono w-16 text-right shrink-0">
+              +15 pts
+            </span>
+            <span>Acertar los dos finalistas (sin importar el orden)</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            La participación es opcional. Las predicciones de finalistas se cierran el
+            28 de junio a las 12:00 AM y se revelan al iniciar los diez y seis avos de final.
+            Este bonus es independiente del pronóstico regular del partido final.
+          </p>
+        </div>
+      </div>
+
+      <div className="border-t border-gray-700" />
+
       {/* Criterios de desempate */}
       <div>
         <div className="text-wc-gold font-bold text-sm mb-2">
