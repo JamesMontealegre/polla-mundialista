@@ -19,25 +19,64 @@
   }
 }
 
-/* Medal shimmer rows */
-@keyframes medal-shimmer {
+/* Medal shimmer rows — each has its own timing for async feel */
+@keyframes shimmer-gold {
   0%, 100% { background-position: 200% 0; }
   50% { background-position: -200% 0; }
+}
+@keyframes shimmer-silver {
+  0%, 100% { background-position: -200% 0; }
+  50% { background-position: 200% 0; }
+}
+@keyframes shimmer-bronze {
+  0%, 100% { background-position: 200% 0; }
+  40% { background-position: -100% 0; }
+  70% { background-position: -200% 0; }
 }
 .medal-gold {
   background: linear-gradient(90deg, rgba(180,140,0,0.45) 0%, rgba(255,215,0,0.4) 30%, rgba(255,250,180,0.7) 48%, rgba(255,255,255,0.8) 50%, rgba(255,250,180,0.7) 52%, rgba(255,215,0,0.4) 70%, rgba(180,140,0,0.45) 100%);
   background-size: 400% 100%;
-  animation: medal-shimmer 5s ease-in-out infinite;
+  animation: shimmer-gold 8s ease-in-out infinite;
 }
 .medal-silver {
   background: linear-gradient(90deg, rgba(130,130,140,0.4) 0%, rgba(192,192,210,0.35) 30%, rgba(230,230,245,0.65) 48%, rgba(255,255,255,0.75) 50%, rgba(230,230,245,0.65) 52%, rgba(192,192,210,0.35) 70%, rgba(130,130,140,0.4) 100%);
   background-size: 400% 100%;
-  animation: medal-shimmer 5s ease-in-out infinite;
+  animation: shimmer-silver 9.5s ease-in-out infinite;
 }
 .medal-bronze {
   background: linear-gradient(90deg, rgba(150,90,30,0.4) 0%, rgba(210,140,60,0.35) 30%, rgba(245,200,120,0.65) 48%, rgba(255,240,200,0.75) 50%, rgba(245,200,120,0.65) 52%, rgba(210,140,60,0.35) 70%, rgba(150,90,30,0.4) 100%);
   background-size: 400% 100%;
-  animation: medal-shimmer 5s ease-in-out infinite;
+  animation: shimmer-bronze 11s ease-in-out infinite;
+}
+
+/* Prize celebration: confetti cannon from bottom */
+.prize-celebration {
+  position: relative;
+  overflow: hidden;
+}
+.confetti-particle {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  opacity: 0;
+  animation: confetti-cannon 3s ease-out infinite;
+}
+@keyframes confetti-cannon {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--tx), calc(var(--ty) + 60px)) rotate(var(--rot));
+    opacity: 0;
+  }
 }
 
 /* Custom number input arrows */
