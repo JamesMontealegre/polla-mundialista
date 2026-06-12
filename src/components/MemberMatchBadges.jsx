@@ -4,30 +4,18 @@ import { calculatePoints } from '../utils/scoring'
 export default function MemberMatchBadges({ matches, memberPredictions, matchResults }) {
   if (!matches || matches.length === 0) return null
 
+  // Solo mostrar partidos con resultado oficial publicado por el admin
+  const finishedMatches = matches.filter(m => matchResults[m.id]?.isFinished)
+  if (finishedMatches.length === 0) return null
+
   return (
     <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pt-2 pb-0.5">
-      {matches.map(match => {
+      {finishedMatches.map(match => {
         const result = matchResults[match.id]
         const prediction = memberPredictions?.[match.id]
-        const isFinished = result?.isFinished
 
         const flag1 = FLAGS[result?.team1 || match.team1] || '🏳️'
         const flag2 = FLAGS[result?.team2 || match.team2] || '🏳️'
-
-        // No finalizado: solo banderas
-        if (!isFinished) {
-          return (
-            <div
-              key={match.id}
-              className="flex-shrink-0 flex items-center gap-0.5 bg-gray-800 rounded-lg px-1.5 py-1 text-xs"
-              title={`${match.team1} vs ${match.team2}`}
-            >
-              <span>{flag1}</span>
-              <span className="text-gray-500 text-[10px]">v</span>
-              <span>{flag2}</span>
-            </div>
-          )
-        }
 
         // Finalizado sin prediccion
         const hasPrediction = prediction && (
