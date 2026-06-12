@@ -217,19 +217,28 @@ export default function GroupPage() {
       }
     }
 
+    // Mapa de cutoff por partido (5 min antes del inicio)
+    const matchCutoffs = {}
+    MATCHES.forEach(m => {
+      matchCutoffs[m.id] = new Date(m.date).getTime() - 5 * 60 * 1000
+    })
+
     // Calcular score por miembro (excluir admins y perfiles de prueba)
     const scoresList = members.filter(m => !hiddenUids.has(m.uid)).map(member => {
       const memberPreds = allPredictions[member.uid] || {}
       let totalPoints = 0, correctWinners = 0, correctScores = 0
-      let timestampSum = 0, timestampCount = 0
+      let anticipationHoursSum = 0, anticipationHoursCount = 0
 
       Object.entries(memberPreds).forEach(([matchId, pred]) => {
+        // Anticipación relativa: horas antes del cierre del partido
         const ts = pred.updatedAt
-        if (ts) {
+        const cutoff = matchCutoffs[matchId]
+        if (ts && cutoff) {
           const millis = ts.toDate ? ts.toDate().getTime() : ts.seconds ? ts.seconds * 1000 : null
-          if (millis) {
-            timestampSum += millis
-            timestampCount++
+          if (millis && millis < cutoff) {
+            const hoursBeforeCutoff = (cutoff - millis) / (1000 * 60 * 60)
+            anticipationHoursSum += hoursBeforeCutoff
+            anticipationHoursCount++
           }
         }
 
@@ -244,7 +253,9 @@ export default function GroupPage() {
         if (correctScore) correctScores++
       })
 
-      const avgTimestamp = timestampCount > 0 ? timestampSum / timestampCount : Infinity
+      const avgAnticipationHours = anticipationHoursCount > 0
+        ? Math.round((anticipationHoursSum / anticipationHoursCount) * 10) / 10
+        : 0
 
       const predictedFinished = finishedMatchIds.filter(mid => memberPreds[mid]).length
       const noParticipation = finishedMatchIds.length - predictedFinished
@@ -273,7 +284,7 @@ export default function GroupPage() {
         totalPoints: totalPoints + finalistBonus,
         correctWinners,
         correctScores,
-        avgTimestamp,
+        avgAnticipationHours,
         noParticipation,
         anticipation,
         finalistBonus,
@@ -790,7 +801,7 @@ export default function GroupPage() {
                     if ((sb.correctWinners ?? 0) !== (sa.correctWinners ?? 0)) return (sb.correctWinners ?? 0) - (sa.correctWinners ?? 0)
                     if ((sa.noParticipation ?? 0) !== (sb.noParticipation ?? 0)) return (sa.noParticipation ?? 0) - (sb.noParticipation ?? 0)
                     if ((sb.anticipation ?? 0) !== (sa.anticipation ?? 0)) return (sb.anticipation ?? 0) - (sa.anticipation ?? 0)
-                    return (sa.avgTimestamp || Infinity) - (sb.avgTimestamp || Infinity)
+                    return (sb.avgAnticipationHours ?? 0) - (sa.avgAnticipationHours ?? 0)
                   })
               })().map(m => (
                 <div key={m.uid} className="bg-gray-900 rounded-xl p-3 border border-gray-700">

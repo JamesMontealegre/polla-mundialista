@@ -79,7 +79,8 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
     if ((a.noParticipation ?? 0) !== (b.noParticipation ?? 0)) return (a.noParticipation ?? 0) - (b.noParticipation ?? 0)
     // Mayor anticipación = mejor
     if ((b.anticipation ?? 0) !== (a.anticipation ?? 0)) return (b.anticipation ?? 0) - (a.anticipation ?? 0)
-    return (a.avgTimestamp || Infinity) - (b.avgTimestamp || Infinity)
+    // Mayor anticipación promedio (horas antes del cierre) = mejor
+    return (b.avgAnticipationHours ?? 0) - (a.avgAnticipationHours ?? 0)
   })
 
   const medals = ['🥇', '🥈', '🥉']

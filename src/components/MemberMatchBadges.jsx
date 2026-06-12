@@ -97,9 +97,6 @@ export default function MemberMatchBadges({ matches, memberPredictions, matchRes
               <span>{flag2}</span>
               <span className={`font-bold text-[10px] ml-0.5 ${pointsTextColor}`}>+{points}</span>
             </div>
-            {tsLabel && (
-              <div className="text-gray-500 font-mono text-[9px] text-center mt-0.5">{tsLabel}</div>
-            )}
           </div>
         )
       })}

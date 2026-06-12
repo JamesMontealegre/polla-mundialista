@@ -14,7 +14,7 @@ export default function StatsTable({ scores, currentUserId }) {
     if (b.correctWinners !== a.correctWinners) return b.correctWinners - a.correctWinners
     if ((a.noParticipation ?? 0) !== (b.noParticipation ?? 0)) return (a.noParticipation ?? 0) - (b.noParticipation ?? 0)
     if ((b.anticipation ?? 0) !== (a.anticipation ?? 0)) return (b.anticipation ?? 0) - (a.anticipation ?? 0)
-    return (a.avgTimestamp || Infinity) - (b.avgTimestamp || Infinity)
+    return (b.avgAnticipationHours ?? 0) - (a.avgAnticipationHours ?? 0)
   })
 
   const showFinalist = scores.some(s => s.finalistBonus != null && s.finalistBonus > 0)
@@ -23,7 +23,7 @@ export default function StatsTable({ scores, currentUserId }) {
     { key: 'correctWinners', label: 'PG', title: 'Partidos ganados', color: 'text-white' },
     { key: 'correctScores', label: 'PE', title: 'Partidos exactos', color: 'text-green-400' },
     { key: 'noParticipation', label: 'NP', title: 'No participación', color: 'text-red-400' },
-    { key: 'anticipation', label: 'AN', title: 'Anticipación', color: 'text-blue-400' },
+    { key: 'anticipation', label: 'AN', title: 'Anticipación (primer predictor correcto)', color: 'text-blue-400' },
     ...(showFinalist ? [{ key: 'finalistBonus', label: 'F', title: 'Bonus finalistas (+15)', color: 'text-purple-400' }] : []),
     { key: 'totalPoints', label: 'P', title: 'Puntos totales', color: 'text-wc-gold font-bold' },
   ]
