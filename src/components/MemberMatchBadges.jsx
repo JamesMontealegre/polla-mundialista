@@ -1,6 +1,19 @@
 import { FLAGS } from '../data/matches'
 import { calculatePoints } from '../utils/scoring'
 
+function formatTimestamp(ts) {
+  if (!ts) return null
+  const millis = ts.toDate ? ts.toDate().getTime() : ts.seconds ? ts.seconds * 1000 : null
+  if (!millis) return null
+  const d = new Date(millis)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${dd}/${mm} ${hh}:${mi}:${ss}`
+}
+
 export default function MemberMatchBadges({ matches, memberPredictions, matchResults }) {
   if (!matches || matches.length === 0) return null
 
@@ -28,13 +41,15 @@ export default function MemberMatchBadges({ matches, memberPredictions, matchRes
           return (
             <div
               key={match.id}
-              className="flex-shrink-0 flex items-center gap-0.5 bg-gray-800 rounded-lg px-1.5 py-1 text-xs border border-red-900/50"
+              className="flex-shrink-0 bg-gray-800 rounded-lg px-1.5 py-1 text-xs border border-red-900/50"
               title={`${match.team1} vs ${match.team2} (no predijo)`}
             >
-              <span className="opacity-40">{flag1}</span>
-              <span className="text-gray-600 text-[10px]">v</span>
-              <span className="opacity-40">{flag2}</span>
-              <span className="text-red-400 text-[10px] ml-0.5">NP</span>
+              <div className="flex items-center gap-0.5">
+                <span className="opacity-40">{flag1}</span>
+                <span className="text-gray-600 text-[10px]">v</span>
+                <span className="opacity-40">{flag2}</span>
+                <span className="text-red-400 text-[10px] ml-0.5">NP</span>
+              </div>
             </div>
           )
         }
@@ -68,16 +83,23 @@ export default function MemberMatchBadges({ matches, memberPredictions, matchRes
             ? 'text-yellow-400'
             : 'text-red-400'
 
+        const tsLabel = formatTimestamp(prediction.updatedAt)
+
         return (
           <div
             key={match.id}
-            className={`flex-shrink-0 flex items-center gap-0.5 rounded-lg px-1.5 py-1 text-xs border ${pointsColor}`}
+            className={`flex-shrink-0 rounded-lg px-1.5 py-1 text-xs border ${pointsColor}`}
             title={`${match.team1} ${result.team1Goals}-${result.team2Goals} ${match.team2} | Prediccion: ${predLabel} | +${points}pts`}
           >
-            <span>{flag1}</span>
-            <span className="text-gray-300 font-mono text-[10px]">{predLabel}</span>
-            <span>{flag2}</span>
-            <span className={`font-bold text-[10px] ml-0.5 ${pointsTextColor}`}>+{points}</span>
+            <div className="flex items-center gap-0.5">
+              <span>{flag1}</span>
+              <span className="text-gray-300 font-mono text-[10px]">{predLabel}</span>
+              <span>{flag2}</span>
+              <span className={`font-bold text-[10px] ml-0.5 ${pointsTextColor}`}>+{points}</span>
+            </div>
+            {tsLabel && (
+              <div className="text-gray-500 font-mono text-[9px] text-center mt-0.5">{tsLabel}</div>
+            )}
           </div>
         )
       })}
