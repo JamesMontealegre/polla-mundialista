@@ -721,10 +721,24 @@ export default function GroupPage() {
               </div>
             )}
             <div className="space-y-2 mb-6">
-              {[...visibleMembers].sort((a, b) => {
-                const order = { confirmed: 0, uploaded: 1, pending: 2, rejected: 3 }
-                return (order[a.paymentStatus] ?? 2) - (order[b.paymentStatus] ?? 2)
-              }).map(m => (
+              {(() => {
+                const scoreMap = Object.fromEntries(scores.map(s => [s.uid, s]))
+                return [...visibleMembers]
+                  .filter(m => {
+                    const preds = allPredictions[m.uid]
+                    return preds && Object.keys(preds).length > 0
+                  })
+                  .sort((a, b) => {
+                    const sa = scoreMap[a.uid] || {}
+                    const sb = scoreMap[b.uid] || {}
+                    if ((sb.totalPoints ?? 0) !== (sa.totalPoints ?? 0)) return (sb.totalPoints ?? 0) - (sa.totalPoints ?? 0)
+                    if ((sb.correctScores ?? 0) !== (sa.correctScores ?? 0)) return (sb.correctScores ?? 0) - (sa.correctScores ?? 0)
+                    if ((sb.correctWinners ?? 0) !== (sa.correctWinners ?? 0)) return (sb.correctWinners ?? 0) - (sa.correctWinners ?? 0)
+                    if ((sa.noParticipation ?? 0) !== (sb.noParticipation ?? 0)) return (sa.noParticipation ?? 0) - (sb.noParticipation ?? 0)
+                    if ((sb.anticipation ?? 0) !== (sa.anticipation ?? 0)) return (sb.anticipation ?? 0) - (sa.anticipation ?? 0)
+                    return (sa.avgTimestamp || Infinity) - (sb.avgTimestamp || Infinity)
+                  })
+              })().map(m => (
                 <div key={m.uid} className="bg-gray-900 rounded-xl p-3 border border-gray-700">
                   <div className="flex items-center gap-3">
                     {m.photoURL ? (

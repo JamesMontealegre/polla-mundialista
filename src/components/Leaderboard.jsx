@@ -81,9 +81,11 @@ export default function Leaderboard({ scores, currentUserId, confirmedMemberCoun
           <div
             key={entry.uid}
             className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-              isMe
-                ? 'bg-wc-green/20 border-wc-green'
-                : 'bg-gray-800 border-gray-700'
+              idx === 0 ? 'medal-gold border-yellow-600/50'
+              : idx === 1 ? 'medal-silver border-gray-400/40'
+              : idx === 2 ? 'medal-bronze border-amber-700/50'
+              : isMe ? 'bg-wc-green/20 border-wc-green'
+              : 'bg-gray-800 border-gray-700'
             }`}
           >
             {/* Position */}

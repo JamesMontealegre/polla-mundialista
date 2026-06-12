@@ -81,7 +81,7 @@ export default function FinalPredictionCard({
 
       {/* Mi prediccion */}
       <div className="bg-gray-900 rounded-xl border border-gray-700 p-4">
-        <div className="text-white font-bold text-sm mb-3">Tu prediccion</div>
+        <div className="text-white font-bold text-sm mb-3 flex items-center gap-1.5"><span className="text-xl">🧙</span> Tu predicción</div>
 
         {!isLocked ? (
           <>

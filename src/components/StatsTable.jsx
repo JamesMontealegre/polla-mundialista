@@ -58,15 +58,15 @@ export default function StatsTable({ scores, currentUserId }) {
         <tbody>
           {sorted.map((entry, idx) => {
             const isMe = entry.uid === currentUserId
+            const medalEmoji = { 0: '🥇', 1: '🥈', 2: '🥉' }
+            const rowBg = isMe ? 'bg-wc-green/20' : idx % 2 === 0 ? 'bg-gray-900' : 'bg-gray-800/40'
             return (
               <tr
                 key={entry.uid}
-                className={`border-t border-gray-700/50 ${
-                  isMe ? 'bg-wc-green/20' : idx % 2 === 0 ? 'bg-gray-900' : 'bg-gray-800/40'
-                }`}
+                className={`border-t border-gray-700/50 ${rowBg}`}
               >
-                <td className="py-2 px-1 text-center text-gray-500 font-mono text-xs">
-                  {idx + 1}
+                <td className="py-2 px-1 text-center font-mono text-xs">
+                  {medalEmoji[idx] || <span className="text-gray-500">{idx + 1}</span>}
                 </td>
                 <td className="py-2 px-2 overflow-hidden">
                   <div className="flex items-center gap-1.5 min-w-0">
