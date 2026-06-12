@@ -259,3 +259,46 @@ export function getWinner(team1Goals, team2Goals, team1, team2) {
   if (team2Goals > team1Goals) return team2
   return 'Empate'
 }
+
+// Retorna los partidos de la "fecha activa" del torneo y el numero de fecha.
+// La fecha cambia ~2 horas antes del primer partido del dia siguiente.
+export function getActiveDateMatches() {
+  const now = Date.now()
+  const TWO_HOURS = 2 * 60 * 60 * 1000
+
+  // Agrupar partidos por fecha calendario (zona Colombia)
+  const dateGroups = {}
+  for (const match of MATCHES) {
+    const d = new Date(match.date)
+    const colombiaDate = d.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+    if (!dateGroups[colombiaDate]) dateGroups[colombiaDate] = []
+    dateGroups[colombiaDate].push(match)
+  }
+
+  const sortedDates = Object.keys(dateGroups).sort()
+
+  // Fecha activa: la ultima cuyo primer partido esta a ≤2h de empezar o ya empezo
+  let activeDate = null
+  let activeDateIndex = 0
+  for (let i = 0; i < sortedDates.length; i++) {
+    const firstMatchTime = Math.min(...dateGroups[sortedDates[i]].map(m => new Date(m.date).getTime()))
+    if (now >= firstMatchTime - TWO_HOURS) {
+      activeDate = sortedDates[i]
+      activeDateIndex = i
+    } else {
+      break
+    }
+  }
+
+  // Si nada califica, usar la primera fecha del torneo
+  if (!activeDate) {
+    activeDate = sortedDates[0] || null
+    activeDateIndex = 0
+  }
+  if (!activeDate) return { matches: [], fechaNumber: 0 }
+
+  return {
+    matches: dateGroups[activeDate].sort((a, b) => new Date(a.date) - new Date(b.date)),
+    fechaNumber: activeDateIndex + 1,
+  }
+}

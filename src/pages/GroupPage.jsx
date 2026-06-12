@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
-import { MATCHES, STAGE_NAMES, hasMatchStarted } from '../data/matches'
+import { MATCHES, STAGE_NAMES, hasMatchStarted, getActiveDateMatches } from '../data/matches'
 import { calculatePoints } from '../utils/scoring'
 import MatchCard from '../components/MatchCard'
 import PredictionModal from '../components/PredictionModal'
@@ -13,6 +13,7 @@ import Leaderboard from '../components/Leaderboard'
 import PaymentModal from '../components/PaymentModal'
 import GameRules from '../components/GameRules'
 import StatsTable from '../components/StatsTable'
+import MemberMatchBadges from '../components/MemberMatchBadges'
 import { HIDDEN_EMAILS } from '../config/hiddenUsers'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
@@ -354,6 +355,8 @@ export default function GroupPage() {
     [matchResults]
   )
 
+  const { matches: activeDateMatches, fechaNumber } = useMemo(() => getActiveDateMatches(), [])
+
   // Partidos con resultados pendientes (para mostrar primero)
   const upcomingMatches = filteredMatches.filter(m => !hasMatchStarted(m))
   const playedMatches = filteredMatches.filter(m => hasMatchStarted(m))
@@ -630,32 +633,46 @@ export default function GroupPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-bold text-lg">👥 Participantes</h2>
             </div>
+            {activeDateMatches.length > 0 && (
+              <div className="text-gray-400 text-xs font-semibold mb-2">
+                Resultados - Fecha {fechaNumber}
+              </div>
+            )}
             <div className="space-y-2 mb-6">
               {[...visibleMembers].sort((a, b) => {
                 const order = { confirmed: 0, uploaded: 1, pending: 2, rejected: 3 }
                 return (order[a.paymentStatus] ?? 2) - (order[b.paymentStatus] ?? 2)
               }).map(m => (
-                <div key={m.uid} className="flex items-center gap-3 bg-gray-900 rounded-xl p-3 border border-gray-700">
-                  {m.photoURL ? (
-                    <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
-                      {m.displayName?.[0]?.toUpperCase()}
+                <div key={m.uid} className="bg-gray-900 rounded-xl p-3 border border-gray-700">
+                  <div className="flex items-center gap-3">
+                    {m.photoURL ? (
+                      <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
+                        {m.displayName?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="text-white font-semibold text-sm">
+                        {m.displayName}
+                        {m.uid === user.uid && <span className="text-wc-gold text-xs ml-1">(tu)</span>}
+                      </div>
                     </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="text-white font-semibold text-sm">
-                      {m.displayName}
-                      {m.uid === user.uid && <span className="text-wc-gold text-xs ml-1">(tu)</span>}
-                    </div>
+                    {isAdmin && m.uid !== user.uid && (
+                      <button
+                        onClick={() => removeMember(m)}
+                        className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded border border-red-800 hover:border-red-700 transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </div>
-                  {isAdmin && m.uid !== user.uid && (
-                    <button
-                      onClick={() => removeMember(m)}
-                      className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded border border-red-800 hover:border-red-700 transition-colors"
-                    >
-                      Eliminar
-                    </button>
+                  {activeDateMatches.length > 0 && (
+                    <MemberMatchBadges
+                      matches={activeDateMatches}
+                      memberPredictions={allPredictions[m.uid] || {}}
+                      matchResults={matchResults}
+                    />
                   )}
                 </div>
               ))}
