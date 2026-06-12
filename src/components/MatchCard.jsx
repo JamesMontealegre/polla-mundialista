@@ -186,7 +186,7 @@ export default function MatchCard({
           <div className="mt-3">
             {started || timeLeft === 0 ? (
               <div className="text-center text-xs text-gray-500 italic">
-                Partido finalizado
+                Pronóstico cerrado
               </div>
             ) : (
               <>

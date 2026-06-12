@@ -167,7 +167,7 @@ export default function GroupPage() {
   }
 
   // Polling: refrescar resultados cada 60s si hay partidos en curso
-  const hasLiveMatches = MATCHES.some(m => hasMatchStarted(m) && !matchResults[m.id]?.isFinished)
+  const hasLiveMatches = MATCHES.some(m => matchResults[m.id]?.isLive)
   useEffect(() => {
     if (!hasLiveMatches) return
     const id = setInterval(() => loadMatchResults(true), 60_000)
@@ -416,10 +416,14 @@ export default function GroupPage() {
   // Revelar predicciones en pestaña Grupo: 28 jun 13:00 COL = 28 jun 18:00 UTC
   const isFinalistVisibleInGroup = Date.now() >= new Date('2026-06-28T18:00:00Z').getTime()
 
-  // Tres categorias de partidos
-  const upcomingMatches = filteredMatches.filter(m => !hasMatchStarted(m))
-  const liveMatches = filteredMatches.filter(m => hasMatchStarted(m) && !matchResults[m.id]?.isFinished)
-  const playedMatches = filteredMatches.filter(m => hasMatchStarted(m) && matchResults[m.id]?.isFinished)
+  // Tres categorias de partidos (controlado por el admin)
+  const liveMatches = filteredMatches.filter(m => matchResults[m.id]?.isLive)
+  const playedMatches = filteredMatches.filter(m => matchResults[m.id]?.isFinished && !matchResults[m.id]?.isLive)
+  const upcomingMatches = filteredMatches.filter(m => !matchResults[m.id]?.isLive && !matchResults[m.id]?.isFinished)
+
+  // Estado de secciones colapsables
+  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false })
+  const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
 
   if (loading) {
     return (
@@ -624,65 +628,83 @@ export default function GroupPage() {
               </div>
             )}
 
-            {/* Upcoming matches */}
-            {upcomingMatches.length > 0 && (
-              <div>
-                <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-wc-gold rounded-full"></span>
-                  Próximos partidos ({upcomingMatches.length})
-                </h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {upcomingMatches.map(match => (
-                    <MatchCard
-                      key={match.id}
-                      match={{ ...match, ...matchResults[match.id] }}
-                      prediction={predictions[match.id]}
-                      onPredict={isPaymentConfirmed ? setSelectedMatch : null}
-                      onReset={isPaymentConfirmed ? deletePrediction : null}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Live matches */}
+            {/* En curso (1st) */}
             {liveMatches.length > 0 && (
               <div>
-                <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
+                <button
+                  onClick={() => toggleSection('live')}
+                  className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+                >
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   En curso ({liveMatches.length})
-                </h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {liveMatches.map(match => (
-                    <MatchCard
-                      key={match.id}
-                      match={{ ...match, ...matchResults[match.id] }}
-                      prediction={predictions[match.id]}
-                      onPredict={null}
-                      isLive
-                    />
-                  ))}
-                </div>
+                  <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.live ? 'rotate-90' : ''}`}>▶</span>
+                </button>
+                {expandedSections.live && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {liveMatches.map(match => (
+                      <MatchCard
+                        key={match.id}
+                        match={{ ...match, ...matchResults[match.id] }}
+                        prediction={predictions[match.id]}
+                        onPredict={null}
+                        isLive
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Played matches */}
+            {/* Próximos partidos (2nd) */}
+            {upcomingMatches.length > 0 && (
+              <div>
+                <button
+                  onClick={() => toggleSection('upcoming')}
+                  className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+                >
+                  <span className="w-2 h-2 bg-wc-gold rounded-full"></span>
+                  Próximos partidos ({upcomingMatches.length})
+                  <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.upcoming ? 'rotate-90' : ''}`}>▶</span>
+                </button>
+                {expandedSections.upcoming && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {upcomingMatches.map(match => (
+                      <MatchCard
+                        key={match.id}
+                        match={{ ...match, ...matchResults[match.id] }}
+                        prediction={predictions[match.id]}
+                        onPredict={isPaymentConfirmed ? setSelectedMatch : null}
+                        onReset={isPaymentConfirmed ? deletePrediction : null}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Partidos jugados (3rd) */}
             {playedMatches.length > 0 && (
               <div>
-                <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
+                <button
+                  onClick={() => toggleSection('played')}
+                  className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+                >
                   <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
                   Partidos jugados ({playedMatches.length})
-                </h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {playedMatches.map(match => (
-                    <MatchCard
-                      key={match.id}
-                      match={{ ...match, ...matchResults[match.id] }}
-                      prediction={predictions[match.id]}
-                      onPredict={null}
-                    />
-                  ))}
-                </div>
+                  <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.played ? 'rotate-90' : ''}`}>▶</span>
+                </button>
+                {expandedSections.played && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {playedMatches.map(match => (
+                      <MatchCard
+                        key={match.id}
+                        match={{ ...match, ...matchResults[match.id] }}
+                        prediction={predictions[match.id]}
+                        onPredict={null}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
