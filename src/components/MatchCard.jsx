@@ -21,6 +21,7 @@ export default function MatchCard({
   onPredict,
   onReset,
   showResult = false,
+  isLive = false,
 }) {
   const [timeLeft, setTimeLeft] = useState(null) // seconds until cutoff
   const [showResetConfirm, setShowResetConfirm] = useState(false)
@@ -100,13 +101,25 @@ export default function MatchCard({
   }
 
   return (
-    <div className={`bg-gray-900 rounded-xl border ${hasResult ? 'border-wc-green' : isTodayUpcoming ? 'border-purple-500/40 match-today' : 'border-gray-700'} overflow-hidden transition-all hover:border-gray-500`}>
+    <div className={`bg-gray-900 rounded-xl border ${
+      isLive ? 'border-green-500/40 match-live'
+      : match.isFinished ? 'border-wc-green'
+      : isTodayUpcoming ? 'border-purple-500/40 match-today'
+      : 'border-gray-700'
+    } overflow-hidden transition-all hover:border-gray-500`}>
       {/* Header */}
       <div className="bg-gray-800 px-3 py-1.5 flex justify-between items-center">
         <span className="text-xs text-gray-400">
           {match.group ? `Grupo ${match.group} · J${match.matchday}` : STAGE_NAMES[match.stage]}
         </span>
-        <span className="text-xs text-gray-400">{formatDate(match.date)}</span>
+        {isLive ? (
+          <span className="flex items-center gap-1.5 text-xs text-green-400 font-bold">
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            EN VIVO
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">{formatDate(match.date)}</span>
+        )}
       </div>
 
       {/* Teams + Score */}
@@ -122,9 +135,15 @@ export default function MatchCard({
           <div className="flex flex-col items-center gap-1 min-w-[90px]">
             {hasResult ? (
               <div className="flex items-center gap-2">
-                <span className="text-wc-gold font-black text-2xl">{match.team1Goals}</span>
+                <span className={`font-black text-2xl ${isLive ? 'text-green-400' : 'text-wc-gold'}`}>{match.team1Goals}</span>
                 <span className="text-gray-500 font-bold">-</span>
-                <span className="text-wc-gold font-black text-2xl">{match.team2Goals}</span>
+                <span className={`font-black text-2xl ${isLive ? 'text-green-400' : 'text-wc-gold'}`}>{match.team2Goals}</span>
+              </div>
+            ) : isLive ? (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 font-black text-2xl">0</span>
+                <span className="text-gray-600 font-bold">-</span>
+                <span className="text-gray-500 font-black text-2xl">0</span>
               </div>
             ) : (
               <div className="text-gray-500 font-bold text-xl">VS</div>
@@ -156,11 +175,18 @@ export default function MatchCard({
         <div className="text-center text-xs text-gray-500 mt-2">📍 {match.city}</div>
 
         {/* CTA Button */}
-        {!isPDef && onPredict && (
+        {isLive && (
+          <div className="mt-3">
+            <div className="w-full py-2 rounded-lg text-sm font-semibold bg-green-900/30 text-green-400/60 text-center border border-green-800/30 cursor-not-allowed">
+              En curso
+            </div>
+          </div>
+        )}
+        {!isLive && !isPDef && onPredict && (
           <div className="mt-3">
             {started || timeLeft === 0 ? (
               <div className="text-center text-xs text-gray-500 italic">
-                Partido en curso o finalizado
+                Partido finalizado
               </div>
             ) : (
               <>

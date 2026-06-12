@@ -34,6 +34,7 @@ export default function AdminPanel() {
   const [g1, setG1] = useState('')
   const [g2, setG2] = useState('')
   const [saving, setSaving] = useState(false)
+  const [markFinished, setMarkFinished] = useState(true)
   const [filterStage, setFilterStage] = useState('group')
   const [filterGroup, setFilterGroup] = useState('all')
   const [searchText, setSearchText] = useState('')
@@ -73,6 +74,7 @@ export default function AdminPanel() {
     setEditingMatch(match)
     setG1(existing?.team1Goals?.toString() ?? '')
     setG2(existing?.team2Goals?.toString() ?? '')
+    setMarkFinished(existing?.isFinished ?? true)
   }
 
   async function saveResult() {
@@ -88,7 +90,7 @@ export default function AdminPanel() {
       team2: editingMatch.team2,
       team1Goals,
       team2Goals,
-      isFinished: true,
+      isFinished: markFinished,
       updatedAt: new Date().toISOString(),
     }, { merge: true })
 
@@ -96,7 +98,7 @@ export default function AdminPanel() {
       ...prev,
       [editingMatch.id]: {
         ...prev[editingMatch.id],
-        team1Goals, team2Goals, isFinished: true,
+        team1Goals, team2Goals, isFinished: markFinished,
       }
     }))
 
@@ -105,7 +107,8 @@ export default function AdminPanel() {
 
     setSaving(false)
     setEditingMatch(null)
-    setSuccessMsg(`✅ Resultado guardado: ${editingMatch.team1} ${team1Goals}-${team2Goals} ${editingMatch.team2}`)
+    const statusLabel = markFinished ? 'Final' : 'En curso'
+    setSuccessMsg(`✅ ${statusLabel}: ${editingMatch.team1} ${team1Goals}-${team2Goals} ${editingMatch.team2}`)
     setTimeout(() => setSuccessMsg(''), 3000)
   }
 
@@ -449,58 +452,56 @@ export default function AdminPanel() {
                     hasResult ? 'border-wc-green' : started ? 'border-yellow-700' : 'border-gray-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    {/* Match info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs text-gray-400 mb-1">
-                        {match.group ? `Grupo ${match.group} · J${match.matchday}` : STAGE_NAMES[match.stage]} ·
-                        {' '}{formatDate(match.date)}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-lg">{FLAGS[displayTeam1] || '🏳️'}</span>
-                        <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam1}</span>
-                        {hasResult ? (
-                          <span className="text-wc-gold font-black text-base">
-                            {result.team1Goals} - {result.team2Goals}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500 font-bold">vs</span>
-                        )}
-                        <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam2}</span>
-                        <span className="text-lg">{FLAGS[displayTeam2] || '🏳️'}</span>
-                      </div>
+                  {/* Match info */}
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      {match.group ? `Grupo ${match.group} · J${match.matchday}` : STAGE_NAMES[match.stage]} ·
+                      {' '}{formatDate(match.date)}
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 items-center">
-                      {hasResult && (
-                        <button
-                          onClick={() => clearResult(match.id)}
-                          className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded border border-red-800 hover:border-red-700"
-                        >
-                          Borrar
-                        </button>
-                      )}
-                      {started ? (
-                        <button
-                          onClick={() => startEdit({ ...match, team1: displayTeam1, team2: displayTeam2 })}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                            hasResult
-                              ? 'bg-gray-700 text-wc-gold hover:bg-gray-600'
-                              : 'bg-wc-gold text-wc-dark hover:bg-yellow-400'
-                          }`}
-                        >
-                          {hasResult ? '✏️ Editar' : '📝 Resultado'}
-                        </button>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-lg">{FLAGS[displayTeam1] || '🏳️'}</span>
+                      <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam1}</span>
+                      {hasResult ? (
+                        <span className="text-wc-gold font-black text-base">
+                          {result.team1Goals} - {result.team2Goals}
+                        </span>
                       ) : (
-                        <button
-                          disabled
-                          className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-500 cursor-not-allowed opacity-50"
-                        >
-                          🔒 {formatRelativeTime(match.date)}
-                        </button>
+                        <span className="text-gray-500 font-bold">vs</span>
                       )}
+                      <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam2}</span>
+                      <span className="text-lg">{FLAGS[displayTeam2] || '🏳️'}</span>
                     </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 mt-3">
+                    {hasResult && (
+                      <button
+                        onClick={() => clearResult(match.id)}
+                        className="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg border border-red-800 hover:border-red-700"
+                      >
+                        Borrar
+                      </button>
+                    )}
+                    {started ? (
+                      <button
+                        onClick={() => startEdit({ ...match, team1: displayTeam1, team2: displayTeam2 })}
+                        className={`flex-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                          hasResult
+                            ? 'bg-gray-700 text-wc-gold hover:bg-gray-600'
+                            : 'bg-wc-gold text-wc-dark hover:bg-yellow-400'
+                        }`}
+                      >
+                        {hasResult ? '✏️ Editar' : '📝 Resultado'}
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="flex-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-500 cursor-not-allowed opacity-50"
+                      >
+                        🔒 {formatRelativeTime(match.date)}
+                      </button>
+                    )}
                   </div>
 
                   {/* Knockout team assignment */}
@@ -728,6 +729,19 @@ export default function AdminPanel() {
               </div>
             </div>
 
+            {/* Partido finalizado toggle */}
+            <label className="flex items-center gap-3 mb-4 cursor-pointer select-none">
+              <div
+                className={`relative w-11 h-6 rounded-full transition-colors ${markFinished ? 'bg-wc-green' : 'bg-gray-700'}`}
+                onClick={() => setMarkFinished(v => !v)}
+              >
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${markFinished ? 'translate-x-5' : ''}`} />
+              </div>
+              <span className="text-sm text-gray-300">
+                {markFinished ? 'Partido finalizado' : 'En curso (score parcial)'}
+              </span>
+            </label>
+
             <div className="flex gap-3">
               <button
                 onClick={() => setEditingMatch(null)}
@@ -738,9 +752,11 @@ export default function AdminPanel() {
               <button
                 onClick={saveResult}
                 disabled={g1 === '' || g2 === '' || saving}
-                className="flex-1 py-2.5 rounded-lg bg-wc-gold text-wc-dark font-bold text-sm disabled:opacity-50"
+                className={`flex-1 py-2.5 rounded-lg font-bold text-sm disabled:opacity-50 ${
+                  markFinished ? 'bg-wc-gold text-wc-dark' : 'bg-wc-green text-white'
+                }`}
               >
-                {saving ? 'Guardando...' : '💾 Guardar'}
+                {saving ? 'Guardando...' : markFinished ? '💾 Guardar final' : '⚽ Guardar en curso'}
               </button>
             </div>
           </div>

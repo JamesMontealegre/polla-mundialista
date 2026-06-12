@@ -122,18 +122,20 @@ export default function GroupPage() {
     }
   }
 
-  async function loadMatchResults() {
+  async function loadMatchResults(skipCache = false) {
     // Cache en sessionStorage (5 min TTL)
     const cacheKey = 'matchResults'
-    const cached = sessionStorage.getItem(cacheKey)
-    if (cached) {
-      try {
-        const { data, ts } = JSON.parse(cached)
-        if (Date.now() - ts < 5 * 60_000) {
-          setMatchResults(data)
-          return
-        }
-      } catch { /* cache corrupto, recargar */ }
+    if (!skipCache) {
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        try {
+          const { data, ts } = JSON.parse(cached)
+          if (Date.now() - ts < 5 * 60_000) {
+            setMatchResults(data)
+            return
+          }
+        } catch { /* cache corrupto, recargar */ }
+      }
     }
     const snap = await getDocs(collection(db, 'matches'))
     const results = {}
@@ -163,6 +165,14 @@ export default function GroupPage() {
     setPredictions(mine)
     setFinalPredictions(finals)
   }
+
+  // Polling: refrescar resultados cada 60s si hay partidos en curso
+  const hasLiveMatches = MATCHES.some(m => hasMatchStarted(m) && !matchResults[m.id]?.isFinished)
+  useEffect(() => {
+    if (!hasLiveMatches) return
+    const id = setInterval(() => loadMatchResults(true), 60_000)
+    return () => clearInterval(id)
+  }, [hasLiveMatches])
 
   // Recalcular scores cuando cambian los datos en memoria (sin Firestore)
   useEffect(() => {
@@ -406,9 +416,10 @@ export default function GroupPage() {
   // Revelar predicciones en pestaña Grupo: 28 jun 13:00 COL = 28 jun 18:00 UTC
   const isFinalistVisibleInGroup = Date.now() >= new Date('2026-06-28T18:00:00Z').getTime()
 
-  // Partidos con resultados pendientes (para mostrar primero)
+  // Tres categorias de partidos
   const upcomingMatches = filteredMatches.filter(m => !hasMatchStarted(m))
-  const playedMatches = filteredMatches.filter(m => hasMatchStarted(m))
+  const liveMatches = filteredMatches.filter(m => hasMatchStarted(m) && !matchResults[m.id]?.isFinished)
+  const playedMatches = filteredMatches.filter(m => hasMatchStarted(m) && matchResults[m.id]?.isFinished)
 
   if (loading) {
     return (
@@ -628,6 +639,27 @@ export default function GroupPage() {
                       prediction={predictions[match.id]}
                       onPredict={isPaymentConfirmed ? setSelectedMatch : null}
                       onReset={isPaymentConfirmed ? deletePrediction : null}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Live matches */}
+            {liveMatches.length > 0 && (
+              <div>
+                <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  En curso ({liveMatches.length})
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {liveMatches.map(match => (
+                    <MatchCard
+                      key={match.id}
+                      match={{ ...match, ...matchResults[match.id] }}
+                      prediction={predictions[match.id]}
+                      onPredict={null}
+                      isLive
                     />
                   ))}
                 </div>
