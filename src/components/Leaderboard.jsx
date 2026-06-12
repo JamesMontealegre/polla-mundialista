@@ -1,23 +1,25 @@
 import { useMemo } from 'react'
 
 const CONFETTI_COLORS = ['#ffd700','#ff6b6b','#4ecdc4','#a78bfa','#f97316','#34d399','#60a5fa','#f472b6','#fbbf24','#c084fc','#fb923c','#2dd4bf']
-const PARTICLE_COUNT = 50
+const PARTICLE_COUNT = 90
 
 function ConfettiCannon() {
   const particles = useMemo(() =>
     Array.from({ length: PARTICLE_COUNT }, (_, i) => {
-      const angle = -20 - Math.random() * 140           // -20 to -160 deg (wider spread)
-      const speed = 80 + Math.random() * 140             // more distance
+      const angle = -30 - Math.random() * 120
+      const speed = 140 + Math.random() * 200
       const rad = (angle * Math.PI) / 180
       const tx = Math.cos(rad) * speed
       const ty = Math.sin(rad) * speed
+      const landY = -4 - Math.random() * 12
       const rot = Math.random() * 1080 - 540
-      const delay = Math.random() * 0.8
-      const dur = 2.5 + Math.random() * 1.5
-      const size = 4 + Math.random() * 5                // 4-9px
+      const delay = Math.random() * 0.5
+      const dur = 2.2 + Math.random() * 1.0
+      const w = 4 + Math.random() * 6
+      const h = 2 + Math.random() * 3
       const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length]
-      const isRect = Math.random() > 0.4                // more rectangles
-      return { tx, ty, rot, delay, dur, size, color, isRect, id: i }
+      const finalOpacity = 0.5 + Math.random() * 0.4
+      return { tx, ty, landY, rot, delay, dur, w, h, color, finalOpacity, id: i }
     }), [])
 
   return (
@@ -30,12 +32,14 @@ function ConfettiCannon() {
             '--tx': `${p.tx}px`,
             '--ty': `${p.ty}px`,
             '--rot': `${p.rot}deg`,
-            width: p.isRect ? `${p.size}px` : `${p.size * 0.7}px`,
-            height: p.isRect ? `${p.size * 0.4}px` : `${p.size * 0.7}px`,
-            borderRadius: p.isRect ? '1px' : '50%',
+            '--land-y': `${p.landY}px`,
+            '--final-opacity': p.finalOpacity,
+            '--delay': `${p.delay}s`,
+            '--dur': `${p.dur}s`,
+            width: `${p.w}px`,
+            height: `${p.h}px`,
+            borderRadius: '1px',
             backgroundColor: p.color,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.dur}s`,
           }}
         />
       ))}
