@@ -74,6 +74,15 @@ export default function MatchCard({
 
   const isPDef = match.team1 === 'Por definir' || match.team2 === 'Por definir'
 
+  // Is this match today (Colombia timezone) and not yet started?
+  const isToday = (() => {
+    const now = new Date()
+    const matchDate = new Date(match.date)
+    const fmt = d => d.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+    return fmt(now) === fmt(matchDate)
+  })()
+  const isTodayUpcoming = isToday && !started
+
   // Formato del countdown mm:ss
   const countdownLabel = timeLeft != null && timeLeft > 0 && timeLeft <= 300
     ? `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`
@@ -91,7 +100,7 @@ export default function MatchCard({
   }
 
   return (
-    <div className={`bg-gray-900 rounded-xl border ${hasResult ? 'border-wc-green' : 'border-gray-700'} overflow-hidden transition-all hover:border-gray-500`}>
+    <div className={`bg-gray-900 rounded-xl border ${hasResult ? 'border-wc-green' : isTodayUpcoming ? 'border-purple-500/40 match-today' : 'border-gray-700'} overflow-hidden transition-all hover:border-gray-500`}>
       {/* Header */}
       <div className="bg-gray-800 px-3 py-1.5 flex justify-between items-center">
         <span className="text-xs text-gray-400">
