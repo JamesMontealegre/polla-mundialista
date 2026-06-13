@@ -498,6 +498,14 @@ export default function GroupPage() {
             ⚽ Partidos
           </button>
           <button
+            onClick={() => setActiveTab('members')}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === 'members' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            📑 Resultados
+          </button>
+          <button
             onClick={() => setActiveTab('leaderboard')}
             className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'leaderboard' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
@@ -520,14 +528,6 @@ export default function GroupPage() {
             }`}
           >
             🏟️ La Final
-          </button>
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === 'members' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            👥 Grupo
           </button>
           {isGroupPaid && isAdmin && (
             <button
@@ -779,7 +779,7 @@ export default function GroupPage() {
         {activeTab === 'members' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">👥 Participantes</h2>
+              <h2 className="text-white font-bold text-lg">📑 Resultados de la fecha</h2>
             </div>
             {activeDateMatches.length > 0 && (
               <div className="text-gray-400 text-xs font-semibold mb-2">
