@@ -521,14 +521,16 @@ export default function GroupPage() {
           >
             📊 Tabla
           </button>
-          <button
-            onClick={() => setActiveTab('final')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === 'final' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            🏟️ La Final
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('final')}
+              className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'final' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              ⭐ Puntos extra
+            </button>
+          )}
           {isGroupPaid && isAdmin && (
             <button
               onClick={() => setActiveTab('payments')}
