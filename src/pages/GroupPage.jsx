@@ -503,7 +503,7 @@ export default function GroupPage() {
               activeTab === 'leaderboard' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            🏆 Tabla
+            🏆 Podio
           </button>
           <button
             onClick={() => setActiveTab('stats')}
