@@ -356,6 +356,16 @@ export default function AdminPanel() {
   const adminPlayedMatches = filteredMatches.filter(m => matchResults[m.id]?.isFinished && !matchResults[m.id]?.isLive)
   const adminUpcomingMatches = filteredMatches.filter(m => !matchResults[m.id]?.isLive && !matchResults[m.id]?.isFinished)
 
+  // Cuando hay partidos en curso, colapsar las otras secciones
+  const hasAnyLiveAdmin = adminLiveMatches.length > 0
+  useEffect(() => {
+    if (hasAnyLiveAdmin) {
+      setExpandedSections({ live: true, upcoming: false, played: false })
+    } else {
+      setExpandedSections({ live: true, upcoming: true, played: false })
+    }
+  }, [hasAnyLiveAdmin])
+
   const stages = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
 
   function renderMatchCard(match) {

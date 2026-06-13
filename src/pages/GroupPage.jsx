@@ -434,8 +434,18 @@ export default function GroupPage() {
   const upcomingMatches = filteredMatches.filter(m => !matchResults[m.id]?.isLive && !matchResults[m.id]?.isFinished)
 
   // Estado de secciones colapsables
+  const hasAnyLive = liveMatches.length > 0
   const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false })
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
+
+  // Cuando hay partidos en curso, colapsar las otras secciones
+  useEffect(() => {
+    if (hasAnyLive) {
+      setExpandedSections({ live: true, upcoming: false, played: false })
+    } else {
+      setExpandedSections({ live: true, upcoming: true, played: false })
+    }
+  }, [hasAnyLive])
 
   if (loading) {
     return (
