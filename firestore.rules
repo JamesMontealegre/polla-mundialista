@@ -77,5 +77,11 @@ service cloud.firestore {
       allow create: if isAuth();
       allow update: if isAuth() && resource.data.userId == request.auth.uid;
     }
+
+    // Tokens FCM para push notifications
+    match /fcmTokens/{tokenId} {
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
   }
 }

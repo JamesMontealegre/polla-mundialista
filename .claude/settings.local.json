@@ -14,7 +14,8 @@
       "Bash(npx sharp-cli -i public/icon.svg -o public/icon-512.png --width 512 --height 512)",
       "Bash(node -e \":*)",
       "Bash(npm install --no-save sharp)",
-      "Bash(ls -la /Users/jamesmontealegre/Documents/projects/polla-mundialista/public/icon-*.png /Users/jamesmontealegre/Documents/projects/polla-mundialista/public/apple-touch-icon.png)"
+      "Bash(ls -la /Users/jamesmontealegre/Documents/projects/polla-mundialista/public/icon-*.png /Users/jamesmontealegre/Documents/projects/polla-mundialista/public/apple-touch-icon.png)",
+      "Bash(npm install)"
     ]
   }
 }
