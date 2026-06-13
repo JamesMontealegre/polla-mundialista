@@ -14,7 +14,9 @@ export default function StatsTable({ scores, currentUserId, isPaid = true }) {
     if (b.correctWinners !== a.correctWinners) return b.correctWinners - a.correctWinners
     if ((a.noParticipation ?? 0) !== (b.noParticipation ?? 0)) return (a.noParticipation ?? 0) - (b.noParticipation ?? 0)
     if ((b.anticipation ?? 0) !== (a.anticipation ?? 0)) return (b.anticipation ?? 0) - (a.anticipation ?? 0)
-    return (b.avgAnticipationHours ?? 0) - (a.avgAnticipationHours ?? 0)
+    if ((b.avgAnticipationHours ?? 0) !== (a.avgAnticipationHours ?? 0)) return (b.avgAnticipationHours ?? 0) - (a.avgAnticipationHours ?? 0)
+    const paid = (x) => x.paymentStatus === 'confirmed' ? 0 : 1
+    return paid(a) - paid(b)
   })
 
   const showFinalist = scores.some(s => s.finalistBonus != null && s.finalistBonus > 0)
