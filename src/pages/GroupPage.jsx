@@ -726,7 +726,7 @@ export default function GroupPage() {
         {activeTab === 'leaderboard' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">🏆 Tabla de Posiciones</h2>
+              <h2 className="text-white font-bold text-lg">🏆 Ranking Ganadores</h2>
               <span className="text-gray-400 text-xs">{visibleMembers.length} participantes</span>
             </div>
             <Leaderboard
