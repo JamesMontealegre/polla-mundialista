@@ -39,6 +39,8 @@ export default function AdminPanel() {
   const [filterGroup, setFilterGroup] = useState('all')
   const [searchText, setSearchText] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false })
+  const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
   // Notification state
   const [showNotifSection, setShowNotifSection] = useState(false)
   const [notifType, setNotifType] = useState('info')
@@ -350,7 +352,155 @@ export default function AdminPanel() {
     return true
   }).sort((a, b) => new Date(a.date) - new Date(b.date))
 
+  const adminLiveMatches = filteredMatches.filter(m => matchResults[m.id]?.isLive)
+  const adminPlayedMatches = filteredMatches.filter(m => matchResults[m.id]?.isFinished && !matchResults[m.id]?.isLive)
+  const adminUpcomingMatches = filteredMatches.filter(m => !matchResults[m.id]?.isLive && !matchResults[m.id]?.isFinished)
+
   const stages = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
+
+  function renderMatchCard(match) {
+    const result = matchResults[match.id]
+    const hasResult = result?.isFinished
+    const isMatchLive = result?.isLive
+    const started = hasMatchStarted(match)
+    const isKnockout = match.stage !== 'group'
+    const displayTeam1 = result?.team1 || match.team1
+    const displayTeam2 = result?.team2 || match.team2
+    const teamsAssigned = displayTeam1 !== 'Por definir' && displayTeam2 !== 'Por definir'
+
+    return (
+      <div
+        key={match.id}
+        className={`bg-gray-900 rounded-xl border p-4 ${
+          hasResult ? 'border-wc-green' : isMatchLive ? 'border-green-500' : started ? 'border-yellow-700' : 'border-gray-700'
+        }`}
+      >
+        {/* Match info */}
+        <div>
+          <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
+            <span>
+              {match.group ? `Grupo ${match.group} · J${match.matchday}` : STAGE_NAMES[match.stage]} ·
+              {' '}{formatDate(match.date)}
+            </span>
+            {isMatchLive && (
+              <span className="flex items-center gap-1 text-green-400 font-bold">
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                EN VIVO
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-lg">{FLAGS[displayTeam1] || '🏳️'}</span>
+            <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam1}</span>
+            {hasResult || isMatchLive ? (
+              <span className={`font-black text-base ${hasResult ? 'text-wc-gold' : 'text-green-400'}`}>
+                {result?.team1Goals ?? 0} - {result?.team2Goals ?? 0}
+              </span>
+            ) : (
+              <span className="text-gray-500 font-bold">vs</span>
+            )}
+            <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam2}</span>
+            <span className="text-lg">{FLAGS[displayTeam2] || '🏳️'}</span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 mt-3">
+          {(hasResult || isMatchLive) && (
+            <button
+              onClick={() => clearResult(match.id)}
+              className="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg border border-red-800 hover:border-red-700"
+            >
+              Borrar
+            </button>
+          )}
+          {started ? (
+            <button
+              onClick={() => startEdit({ ...match, team1: displayTeam1, team2: displayTeam2 })}
+              className={`flex-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                hasResult
+                  ? 'bg-gray-700 text-wc-gold hover:bg-gray-600'
+                  : isMatchLive
+                  ? 'bg-green-700 text-white hover:bg-green-600'
+                  : 'bg-wc-gold text-wc-dark hover:bg-yellow-400'
+              }`}
+            >
+              {hasResult ? '✏️ Editar' : isMatchLive ? '⚽ Actualizar' : '📝 Resultado'}
+            </button>
+          ) : (
+            <button
+              disabled
+              className="flex-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-500 cursor-not-allowed opacity-50"
+            >
+              🔒 {formatRelativeTime(match.date)}
+            </button>
+          )}
+        </div>
+
+        {/* Knockout team assignment */}
+        {isKnockout && !teamsAssigned && (
+          <div className="mt-3 pt-3 border-t border-gray-800">
+            <div className="text-xs text-yellow-400 font-semibold mb-2">Asignar equipos:</div>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={displayTeam1 === 'Por definir' ? '' : displayTeam1}
+                onChange={e => updateKnockoutTeam(match.id, 'team1', e.target.value || 'Por definir')}
+                className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+              >
+                <option value="">Equipo 1...</option>
+                {ALL_TEAMS.map(t => (
+                  <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
+                ))}
+              </select>
+              <select
+                value={displayTeam2 === 'Por definir' ? '' : displayTeam2}
+                onChange={e => updateKnockoutTeam(match.id, 'team2', e.target.value || 'Por definir')}
+                className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+              >
+                <option value="">Equipo 2...</option>
+                {ALL_TEAMS.map(t => (
+                  <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* Show edit option for already-assigned knockout teams */}
+        {isKnockout && teamsAssigned && !hasResult && (
+          <div className="mt-2 pt-2 border-t border-gray-800">
+            <details className="group">
+              <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-300 select-none">
+                Cambiar equipos
+              </summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <select
+                  value={displayTeam1}
+                  onChange={e => updateKnockoutTeam(match.id, 'team1', e.target.value || 'Por definir')}
+                  className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+                >
+                  <option value="">Equipo 1...</option>
+                  {ALL_TEAMS.map(t => (
+                    <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
+                  ))}
+                </select>
+                <select
+                  value={displayTeam2}
+                  onChange={e => updateKnockoutTeam(match.id, 'team2', e.target.value || 'Por definir')}
+                  className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
+                >
+                  <option value="">Equipo 2...</option>
+                  {ALL_TEAMS.map(t => (
+                    <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
+                  ))}
+                </select>
+              </div>
+            </details>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-wc-dark">
@@ -438,151 +588,52 @@ export default function AdminPanel() {
         {loading ? (
           <div className="text-center text-gray-500 py-8">Cargando...</div>
         ) : (
-          <div className="space-y-3">
-            {filteredMatches.map(match => {
-              const result = matchResults[match.id]
-              const hasResult = result?.isFinished
-              const isMatchLive = result?.isLive
-              const started = hasMatchStarted(match)
-              const isKnockout = match.stage !== 'group'
-              // Use Firestore-stored team names if available, otherwise use static data
-              const displayTeam1 = result?.team1 || match.team1
-              const displayTeam2 = result?.team2 || match.team2
-              const teamsAssigned = displayTeam1 !== 'Por definir' && displayTeam2 !== 'Por definir'
-
-              return (
-                <div
-                  key={match.id}
-                  className={`bg-gray-900 rounded-xl border p-4 ${
-                    hasResult ? 'border-wc-green' : isMatchLive ? 'border-green-500' : started ? 'border-yellow-700' : 'border-gray-700'
-                  }`}
-                >
-                  {/* Match info */}
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                      <span>
-                        {match.group ? `Grupo ${match.group} · J${match.matchday}` : STAGE_NAMES[match.stage]} ·
-                        {' '}{formatDate(match.date)}
-                      </span>
-                      {isMatchLive && (
-                        <span className="flex items-center gap-1 text-green-400 font-bold">
-                          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                          EN VIVO
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-lg">{FLAGS[displayTeam1] || '🏳️'}</span>
-                      <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam1}</span>
-                      {hasResult || isMatchLive ? (
-                        <span className={`font-black text-base ${hasResult ? 'text-wc-gold' : 'text-green-400'}`}>
-                          {result?.team1Goals ?? 0} - {result?.team2Goals ?? 0}
-                        </span>
-                      ) : (
-                        <span className="text-gray-500 font-bold">vs</span>
-                      )}
-                      <span className="text-white font-semibold truncate max-w-[90px]">{displayTeam2}</span>
-                      <span className="text-lg">{FLAGS[displayTeam2] || '🏳️'}</span>
-                    </div>
+          <div className="space-y-4">
+            {/* En curso */}
+            {adminLiveMatches.length > 0 && (
+              <div>
+                <button onClick={() => toggleSection('live')} className="w-full flex items-center gap-2 py-2 text-left">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  <span className="text-green-400 font-bold text-sm">En curso ({adminLiveMatches.length})</span>
+                  <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.live ? 'rotate-90' : ''}`}>▶</span>
+                </button>
+                {expandedSections.live && (
+                  <div className="space-y-3">
+                    {adminLiveMatches.map(match => renderMatchCard(match))}
                   </div>
+                )}
+              </div>
+            )}
 
-                  {/* Actions */}
-                  <div className="flex gap-2 mt-3">
-                    {(hasResult || isMatchLive) && (
-                      <button
-                        onClick={() => clearResult(match.id)}
-                        className="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg border border-red-800 hover:border-red-700"
-                      >
-                        Borrar
-                      </button>
-                    )}
-                    {started ? (
-                      <button
-                        onClick={() => startEdit({ ...match, team1: displayTeam1, team2: displayTeam2 })}
-                        className={`flex-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                          hasResult
-                            ? 'bg-gray-700 text-wc-gold hover:bg-gray-600'
-                            : isMatchLive
-                            ? 'bg-green-700 text-white hover:bg-green-600'
-                            : 'bg-wc-gold text-wc-dark hover:bg-yellow-400'
-                        }`}
-                      >
-                        {hasResult ? '✏️ Editar' : isMatchLive ? '⚽ Actualizar' : '📝 Resultado'}
-                      </button>
-                    ) : (
-                      <button
-                        disabled
-                        className="flex-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-500 cursor-not-allowed opacity-50"
-                      >
-                        🔒 {formatRelativeTime(match.date)}
-                      </button>
-                    )}
+            {/* Próximos partidos */}
+            {adminUpcomingMatches.length > 0 && (
+              <div>
+                <button onClick={() => toggleSection('upcoming')} className="w-full flex items-center gap-2 py-2 text-left">
+                  <span className="text-wc-gold font-bold text-sm">Próximos partidos ({adminUpcomingMatches.length})</span>
+                  <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.upcoming ? 'rotate-90' : ''}`}>▶</span>
+                </button>
+                {expandedSections.upcoming && (
+                  <div className="space-y-3">
+                    {adminUpcomingMatches.map(match => renderMatchCard(match))}
                   </div>
+                )}
+              </div>
+            )}
 
-                  {/* Knockout team assignment */}
-                  {isKnockout && !teamsAssigned && (
-                    <div className="mt-3 pt-3 border-t border-gray-800">
-                      <div className="text-xs text-yellow-400 font-semibold mb-2">Asignar equipos:</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={displayTeam1 === 'Por definir' ? '' : displayTeam1}
-                          onChange={e => updateKnockoutTeam(match.id, 'team1', e.target.value || 'Por definir')}
-                          className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
-                        >
-                          <option value="">Equipo 1...</option>
-                          {ALL_TEAMS.map(t => (
-                            <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={displayTeam2 === 'Por definir' ? '' : displayTeam2}
-                          onChange={e => updateKnockoutTeam(match.id, 'team2', e.target.value || 'Por definir')}
-                          className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
-                        >
-                          <option value="">Equipo 2...</option>
-                          {ALL_TEAMS.map(t => (
-                            <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Show edit option for already-assigned knockout teams */}
-                  {isKnockout && teamsAssigned && !hasResult && (
-                    <div className="mt-2 pt-2 border-t border-gray-800">
-                      <details className="group">
-                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-300 select-none">
-                          Cambiar equipos
-                        </summary>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                          <select
-                            value={displayTeam1}
-                            onChange={e => updateKnockoutTeam(match.id, 'team1', e.target.value || 'Por definir')}
-                            className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
-                          >
-                            <option value="">Equipo 1...</option>
-                            {ALL_TEAMS.map(t => (
-                              <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
-                            ))}
-                          </select>
-                          <select
-                            value={displayTeam2}
-                            onChange={e => updateKnockoutTeam(match.id, 'team2', e.target.value || 'Por definir')}
-                            className="bg-gray-800 text-white text-xs rounded-lg px-2 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none"
-                          >
-                            <option value="">Equipo 2...</option>
-                            {ALL_TEAMS.map(t => (
-                              <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </details>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+            {/* Partidos jugados */}
+            {adminPlayedMatches.length > 0 && (
+              <div>
+                <button onClick={() => toggleSection('played')} className="w-full flex items-center gap-2 py-2 text-left">
+                  <span className="text-gray-400 font-bold text-sm">Partidos jugados ({adminPlayedMatches.length})</span>
+                  <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.played ? 'rotate-90' : ''}`}>▶</span>
+                </button>
+                {expandedSections.played && (
+                  <div className="space-y-3">
+                    {adminPlayedMatches.map(match => renderMatchCard(match))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
