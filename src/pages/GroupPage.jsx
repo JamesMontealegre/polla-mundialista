@@ -430,6 +430,7 @@ export default function GroupPage() {
   // Tres categorias de partidos (controlado por el admin)
   const liveMatches = filteredMatches.filter(m => matchResults[m.id]?.isLive)
   const playedMatches = filteredMatches.filter(m => matchResults[m.id]?.isFinished && !matchResults[m.id]?.isLive)
+    .sort((a, b) => new Date(b.date) - new Date(a.date) || (b.matchNum || 0) - (a.matchNum || 0))
   const upcomingMatches = filteredMatches.filter(m => !matchResults[m.id]?.isLive && !matchResults[m.id]?.isFinished)
 
   // Estado de secciones colapsables
