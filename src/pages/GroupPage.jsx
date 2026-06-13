@@ -576,17 +576,17 @@ export default function GroupPage() {
                 </div>
                 <p className="text-gray-400 text-xs mt-0.5">
                   {myPaymentStatus === 'uploaded'
-                    ? 'El admin esta revisando tu comprobante.'
+                    ? 'El admin está revisando tu comprobante.'
                     : myPaymentStatus === 'rejected'
                     ? 'Tu comprobante fue rechazado. Sube uno nuevo.'
-                    : 'Debes pagar para poder hacer predicciones.'}
+                    : 'Completa tu cuota de participación para pronosticar.'}
                 </p>
               </div>
               <button
                 onClick={() => setShowPaymentModal(true)}
                 className="flex-shrink-0 px-4 py-2 rounded-lg bg-wc-gold text-wc-dark font-bold text-xs"
               >
-                {myPaymentStatus === 'rejected' ? 'Resubir' : myPaymentStatus === 'uploaded' ? 'Ver estado' : 'Pagar'}
+                {myPaymentStatus === 'rejected' ? 'Resubir' : myPaymentStatus === 'uploaded' ? 'Ver estado' : 'Quiero Pronosticar'}
               </button>
             </div>
           </div>
