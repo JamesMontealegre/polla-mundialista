@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
 import PushNotificationBanner from './components/PushNotificationBanner'
+import InstallBanner from './components/InstallBanner'
 import useVersionCheck from './hooks/useVersionCheck'
 import Login from './pages/Login'
 import Home from './pages/Home'
@@ -16,6 +17,7 @@ function Layout({ children }) {
     <>
       <Navbar />
       {children}
+      <InstallBanner />
       <PushNotificationBanner />
     </>
   )
