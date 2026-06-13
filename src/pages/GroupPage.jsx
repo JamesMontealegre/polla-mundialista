@@ -511,7 +511,7 @@ export default function GroupPage() {
               activeTab === 'stats' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            📊 Asi vamos
+            📊 Tabla
           </button>
           <button
             onClick={() => setActiveTab('final')}
@@ -743,7 +743,7 @@ export default function GroupPage() {
         {activeTab === 'stats' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">📊 Asi vamos</h2>
+              <h2 className="text-white font-bold text-lg">📊 Tabla de posiciones</h2>
               <span className="text-gray-400 text-xs">{finishedMatchCount} partidos jugados</span>
             </div>
             <StatsTable scores={scores} currentUserId={user.uid} isPaid={isGroupPaid} />
