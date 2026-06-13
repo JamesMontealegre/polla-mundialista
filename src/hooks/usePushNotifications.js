@@ -34,6 +34,20 @@ export default function usePushNotifications(user) {
         '/firebase-messaging-sw.js'
       )
 
+      // Esperar a que el service worker este activo antes de pedir el token
+      if (!registration.active) {
+        await new Promise((resolve) => {
+          const sw = registration.installing || registration.waiting
+          if (!sw) { resolve(); return }
+          sw.addEventListener('statechange', function handler() {
+            if (sw.state === 'activated') {
+              sw.removeEventListener('statechange', handler)
+              resolve()
+            }
+          })
+        })
+      }
+
       const token = await getToken(messaging, {
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: registration,
