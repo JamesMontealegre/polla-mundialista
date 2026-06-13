@@ -746,7 +746,7 @@ export default function GroupPage() {
               <h2 className="text-white font-bold text-lg">📊 Asi vamos</h2>
               <span className="text-gray-400 text-xs">{finishedMatchCount} partidos jugados</span>
             </div>
-            <StatsTable scores={scores} currentUserId={user.uid} />
+            <StatsTable scores={scores} currentUserId={user.uid} isPaid={isGroupPaid} />
           </div>
         )}
 

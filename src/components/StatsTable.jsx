@@ -1,4 +1,4 @@
-export default function StatsTable({ scores, currentUserId }) {
+export default function StatsTable({ scores, currentUserId, isPaid = true }) {
   if (!scores || scores.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -65,7 +65,11 @@ export default function StatsTable({ scores, currentUserId }) {
                 key={entry.uid}
                 className={`border-t border-gray-700/50 ${rowBg}`}
               >
-                <td className="py-2 px-1 text-center font-mono text-xs">
+                <td className={`py-2 px-1 text-center font-mono text-xs border-l-4 ${
+                  isPaid && entry.paymentStatus !== 'confirmed'
+                    ? 'border-red-500'
+                    : 'border-transparent'
+                }`}>
                   {medalEmoji[idx] || <span className="text-gray-500">{idx + 1}</span>}
                 </td>
                 <td className="py-2 px-2 overflow-hidden">
