@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, serverTimestamp
+  doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, serverTimestamp, onSnapshot
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
@@ -166,12 +166,17 @@ export default function GroupPage() {
     setFinalPredictions(finals)
   }
 
-  // Polling: refrescar resultados cada 60s si hay partidos en curso
+  // Listener en tiempo real: escuchar cambios en resultados cuando hay partidos en curso
   const hasLiveMatches = MATCHES.some(m => matchResults[m.id]?.isLive)
   useEffect(() => {
     if (!hasLiveMatches) return
-    const id = setInterval(() => loadMatchResults(true), 60_000)
-    return () => clearInterval(id)
+    const unsub = onSnapshot(collection(db, 'matches'), (snap) => {
+      const results = {}
+      snap.docs.forEach(d => { results[d.id] = d.data() })
+      setMatchResults(results)
+      sessionStorage.setItem('matchResults', JSON.stringify({ data: results, ts: Date.now() }))
+    })
+    return () => unsub()
   }, [hasLiveMatches])
 
   // Recalcular scores cuando cambian los datos en memoria (sin Firestore)
