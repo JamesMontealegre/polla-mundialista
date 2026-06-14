@@ -440,7 +440,7 @@ export default function GroupPage() {
 
   // Estado de secciones colapsables
   const hasAnyLive = liveMatches.length > 0
-  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false })
+  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false, finalPred: true })
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
 
   // Cuando hay partidos en curso, colapsar las otras secciones
@@ -770,25 +770,34 @@ export default function GroupPage() {
         {/* FINAL TAB */}
         {activeTab === 'final' && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">🏟️ La Final</h2>
-              {!isFinalistLocked && (
-                <span className="text-gray-400 text-xs">
-                  Cierra 28 jun 12:00 AM
-                </span>
+            <h2 className="text-white font-bold text-lg mb-4">⭐ Puntos extra</h2>
+
+            {/* Sección desplegable: La final */}
+            <div>
+              <button
+                onClick={() => toggleSection('finalPred')}
+                className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+              >
+                🏟️ La final
+                {!isFinalistLocked && (
+                  <span className="text-gray-400 text-xs font-normal ml-1">· Cierra 28 jun 12:00 AM</span>
+                )}
+                <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.finalPred ? 'rotate-90' : ''}`}>▶</span>
+              </button>
+              {expandedSections.finalPred && (
+                <FinalPredictionCard
+                  prediction={finalPredictions[user.uid]}
+                  onSave={saveFinalPrediction}
+                  isLocked={isFinalistLocked}
+                  isRevealed={isFinalistRevealed}
+                  allFinalPredictions={finalPredictions}
+                  visibleMembers={visibleMembers}
+                  currentUserId={user.uid}
+                  finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
+                  deadline={FINAL_PRED_DEADLINE.getTime()}
+                />
               )}
             </div>
-            <FinalPredictionCard
-              prediction={finalPredictions[user.uid]}
-              onSave={saveFinalPrediction}
-              isLocked={isFinalistLocked}
-              isRevealed={isFinalistRevealed}
-              allFinalPredictions={finalPredictions}
-              visibleMembers={visibleMembers}
-              currentUserId={user.uid}
-              finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
-              deadline={FINAL_PRED_DEADLINE.getTime()}
-            />
           </div>
         )}
 
