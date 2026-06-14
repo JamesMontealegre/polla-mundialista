@@ -31,6 +31,29 @@ export default function GameRules({ isPaid = true }) {
           que elegiste como ganador efectivamente gana, sumas +1 punto. Tu pronóstico
           se contabiliza como resultado acertado, no como marcador exacto.
         </p>
+        <div className="mt-3 space-y-1.5 text-sm">
+          <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-1">Columnas de la tabla</p>
+          <div className="flex items-start gap-2">
+            <span className="text-white font-bold font-mono w-8 shrink-0">PG</span>
+            <span className="text-gray-300">Partidos ganados — número de veces que acertaste el ganador o el empate.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-green-400 font-bold font-mono w-8 shrink-0">PE</span>
+            <span className="text-gray-300">Partidos exactos — veces que acertaste el marcador exacto (+3 pts cada uno).</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-red-400 font-bold font-mono w-8 shrink-0">NP</span>
+            <span className="text-gray-300">No participación — partidos terminados en los que no dejaste ningún pronóstico.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-blue-400 font-bold font-mono w-8 shrink-0">AN</span>
+            <span className="text-gray-300">Anticipación — veces que fuiste el primero en acertar el resultado de un partido (+1 pt cada vez).</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-wc-gold font-bold font-mono w-8 shrink-0">P</span>
+            <span className="text-gray-300">Puntos totales acumulados en la polla.</span>
+          </div>
+        </div>
       </div>
 
       <div className="border-t border-gray-700" />
