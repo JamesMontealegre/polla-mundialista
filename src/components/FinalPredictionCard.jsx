@@ -1,23 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ALL_TEAMS, FLAGS } from '../data/matches'
-
-function useCountdown(deadline) {
-  const [remaining, setRemaining] = useState(() => Math.max(0, deadline - Date.now()))
-  useEffect(() => {
-    if (remaining <= 0) return
-    const id = setInterval(() => {
-      const diff = Math.max(0, deadline - Date.now())
-      setRemaining(diff)
-      if (diff <= 0) clearInterval(id)
-    }, 60_000)
-    return () => clearInterval(id)
-  }, [deadline])
-  const totalMin = Math.floor(remaining / 60_000)
-  const days = Math.floor(totalMin / 1440)
-  const hours = Math.floor((totalMin % 1440) / 60)
-  const minutes = totalMin % 60
-  return { days, hours, minutes, expired: remaining <= 0 }
-}
 
 export default function FinalPredictionCard({
   prediction,
@@ -28,12 +10,10 @@ export default function FinalPredictionCard({
   visibleMembers,
   currentUserId,
   finalResult,
-  deadline,
 }) {
   const [team1, setTeam1] = useState(prediction?.finalTeam1 || '')
   const [team2, setTeam2] = useState(prediction?.finalTeam2 || '')
   const [saving, setSaving] = useState(false)
-  const countdown = useCountdown(deadline)
 
   const hasChanged = team1 !== (prediction?.finalTeam1 || '') || team2 !== (prediction?.finalTeam2 || '')
   const isValid = team1 && team2 && team1 !== team2
@@ -61,24 +41,6 @@ export default function FinalPredictionCard({
 
   return (
     <div className="space-y-4">
-      {/* Countdown */}
-      {!countdown.expired && (
-        <div className="bg-gray-900 rounded-xl border border-purple-800/50 p-4 text-center animate-pulse">
-          <div className="text-gray-400 text-xs mb-1.5">Tiempo restante para predecir</div>
-          <div className="flex items-center justify-center gap-3">
-            <div>
-              <div className="text-white font-black text-2xl font-mono">{countdown.days}</div>
-              <div className="text-gray-500 text-[10px] uppercase">dias</div>
-            </div>
-            <div className="text-gray-600 text-xl font-bold">:</div>
-            <div>
-              <div className="text-white font-black text-2xl font-mono">{String(countdown.hours).padStart(2, '0')}</div>
-              <div className="text-gray-500 text-[10px] uppercase">horas</div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Mi prediccion */}
       <div className="bg-gray-900 rounded-xl border border-gray-700 p-4">
         <div className="text-white font-bold text-sm mb-3 flex items-center gap-1.5"><span className="text-xl">🧙</span> Tu predicción</div>

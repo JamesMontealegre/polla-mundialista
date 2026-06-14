@@ -15,6 +15,7 @@ import GameRules from '../components/GameRules'
 import StatsTable from '../components/StatsTable'
 import MemberMatchBadges from '../components/MemberMatchBadges'
 import FinalPredictionCard from '../components/FinalPredictionCard'
+import CountdownBanner from '../components/CountdownBanner'
 import { HIDDEN_EMAILS } from '../config/hiddenUsers'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
@@ -772,6 +773,8 @@ export default function GroupPage() {
           <div>
             <h2 className="text-white font-bold text-lg mb-4">⭐ Puntos extra</h2>
 
+            <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} />
+
             {/* Sección desplegable: La final */}
             <div>
               <button
@@ -794,7 +797,6 @@ export default function GroupPage() {
                   visibleMembers={visibleMembers}
                   currentUserId={user.uid}
                   finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
-                  deadline={FINAL_PRED_DEADLINE.getTime()}
                 />
               )}
             </div>
