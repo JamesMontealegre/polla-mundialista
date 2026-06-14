@@ -16,6 +16,7 @@ import StatsTable from '../components/StatsTable'
 import MemberMatchBadges from '../components/MemberMatchBadges'
 import FinalPredictionCard from '../components/FinalPredictionCard'
 import CountdownBanner from '../components/CountdownBanner'
+import TopScorerPredictionCard from '../components/TopScorerPredictionCard'
 import { HIDDEN_EMAILS } from '../config/hiddenUsers'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
@@ -23,8 +24,7 @@ const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6
 
 // Deadline: 28 jun 2026 00:00 Colombia (UTC-5) = 28 jun 05:00 UTC
 const FINAL_PRED_DEADLINE = new Date('2026-06-28T05:00:00Z')
-// Deadline tercer puesto: antes del inicio de las semifinales (14 jul 2026 12:00 COL = 17:00 UTC)
-const THIRD_PLACE_PRED_DEADLINE = new Date('2026-07-14T17:00:00Z')
+const THIRD_PLACE_PRED_DEADLINE = FINAL_PRED_DEADLINE
 
 export default function GroupPage() {
   const { groupId } = useParams()
@@ -37,7 +37,8 @@ export default function GroupPage() {
   const [predictions, setPredictions] = useState({}) // matchId → prediction (mis predicciones)
   const [allPredictions, setAllPredictions] = useState({}) // uid → { matchId → prediction }
   const [finalPredictions, setFinalPredictions] = useState({}) // uid → { finalTeam1, finalTeam2, updatedAt }
-  const [thirdPlacePredictions, setThirdPlacePredictions] = useState({}) // uid → { finalTeam1, finalTeam2, updatedAt }
+  const [thirdPlacePredictions, setThirdPlacePredictions] = useState({}) // uid → { finalTeam1, finalTeam2, winner, updatedAt }
+  const [topScorerPredictions, setTopScorerPredictions] = useState({}) // uid → { team, jerseyNumber, goals }
   const [scores, setScores] = useState([]) // [{uid, displayName, totalPoints, ...}]
   const [loading, setLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState(null)
@@ -156,6 +157,7 @@ export default function GroupPage() {
     const mine = {}
     const finals = {}
     const thirds = {}
+    const topScorers = {}
     snap.docs.forEach(d => {
       const data = d.data()
       if (data.matchId === 'FINALISTS') {
@@ -166,6 +168,10 @@ export default function GroupPage() {
         thirds[data.uid] = data
         return
       }
+      if (data.matchId === 'TOP_SCORER') {
+        topScorers[data.uid] = data
+        return
+      }
       if (!all[data.uid]) all[data.uid] = {}
       all[data.uid][data.matchId] = data
       if (data.uid === user.uid) mine[data.matchId] = data
@@ -174,6 +180,7 @@ export default function GroupPage() {
     setPredictions(mine)
     setFinalPredictions(finals)
     setThirdPlacePredictions(thirds)
+    setTopScorerPredictions(topScorers)
   }
 
   // Listener en tiempo real: escuchar cambios en resultados cuando hay partidos en curso
@@ -277,18 +284,25 @@ export default function GroupPage() {
 
       const anticipation = Object.values(anticipationWinners).filter(uid => uid === member.uid).length
 
-      // Bonus +15 por acertar finalistas
+      // Puntos extra (final + tercer puesto: max 6 c/u)
       let finalistBonus = 0
-      const finalMatch = matchResults['FINAL']
-      if (finalMatch?.isFinished) {
-        const fp = finalPredictions[member.uid]
-        if (fp) {
-          const actualTeams = new Set([finalMatch.team1, finalMatch.team2])
-          const predTeams = new Set([fp.finalTeam1, fp.finalTeam2])
-          if (actualTeams.size === 2 && [...predTeams].every(t => actualTeams.has(t))) {
-            finalistBonus = 15
-          }
-        }
+
+      function extraBonus(result, pred) {
+        if (!result?.isFinished || !pred) return 0
+        const actualTeams = new Set([result.team1, result.team2])
+        const predTeams = new Set([pred.finalTeam1, pred.finalTeam2])
+        const teamsOk = actualTeams.size === 2 && predTeams.size === 2 && [...predTeams].every(t => actualTeams.has(t))
+        const actualWinner = result.team1Goals > result.team2Goals ? result.team1
+          : result.team2Goals > result.team1Goals ? result.team2 : null
+        const resultOk = actualWinner && pred.winner === actualWinner
+        return (teamsOk ? 3 : 0) + (resultOk ? 3 : 0)
+      }
+
+      finalistBonus += extraBonus(matchResults['FINAL'], finalPredictions[member.uid])
+
+      const thirdPlaceMatchId = MATCHES.find(m => m.stage === '3rd')?.id
+      if (thirdPlaceMatchId) {
+        finalistBonus += extraBonus(matchResults[thirdPlaceMatchId], thirdPlacePredictions[member.uid])
       }
 
       return {
@@ -362,38 +376,25 @@ export default function GroupPage() {
     }
   }
 
-  async function saveFinalPrediction(finalTeam1, finalTeam2) {
+  async function saveFinalPrediction(finalTeam1, finalTeam2, winner) {
     const predId = `${groupId}_FINALISTS_${user.uid}`
-    const predDoc = {
-      groupId,
-      matchId: 'FINALISTS',
-      uid: user.uid,
-      finalTeam1,
-      finalTeam2,
-      updatedAt: serverTimestamp(),
-    }
+    const predDoc = { groupId, matchId: 'FINALISTS', uid: user.uid, finalTeam1, finalTeam2, winner, updatedAt: serverTimestamp() }
     await setDoc(doc(db, 'predictions', predId), predDoc)
-    setFinalPredictions(prev => ({
-      ...prev,
-      [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } }
-    }))
+    setFinalPredictions(prev => ({ ...prev, [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } } }))
   }
 
-  async function saveThirdPlacePrediction(finalTeam1, finalTeam2) {
+  async function saveThirdPlacePrediction(finalTeam1, finalTeam2, winner) {
     const predId = `${groupId}_THIRD_PLACE_${user.uid}`
-    const predDoc = {
-      groupId,
-      matchId: 'THIRD_PLACE',
-      uid: user.uid,
-      finalTeam1,
-      finalTeam2,
-      updatedAt: serverTimestamp(),
-    }
+    const predDoc = { groupId, matchId: 'THIRD_PLACE', uid: user.uid, finalTeam1, finalTeam2, winner, updatedAt: serverTimestamp() }
     await setDoc(doc(db, 'predictions', predId), predDoc)
-    setThirdPlacePredictions(prev => ({
-      ...prev,
-      [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } }
-    }))
+    setThirdPlacePredictions(prev => ({ ...prev, [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } } }))
+  }
+
+  async function saveTopScorerPrediction(team, jerseyNumber, goals) {
+    const predId = `${groupId}_TOP_SCORER_${user.uid}`
+    const predDoc = { groupId, matchId: 'TOP_SCORER', uid: user.uid, team, jerseyNumber, goals, updatedAt: serverTimestamp() }
+    await setDoc(doc(db, 'predictions', predId), predDoc)
+    setTopScorerPredictions(prev => ({ ...prev, [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } } }))
   }
 
   const copyInviteCode = () => {
@@ -455,13 +456,11 @@ export default function GroupPage() {
 
   // La Final: deadline y revelacion
   const isFinalistLocked = Date.now() >= FINAL_PRED_DEADLINE.getTime()
-  const isThirdPlaceLocked = Date.now() >= THIRD_PLACE_PRED_DEADLINE.getTime()
+  const isThirdPlaceLocked = isFinalistLocked
   const isThirdPlaceRevealed = MATCHES.some(m => m.stage === 'sf' && hasMatchStarted(m))
+  const isTopScorerRevealed = isThirdPlaceRevealed
   const thirdPlaceMatch = MATCHES.find(m => m.stage === '3rd')
   const thirdPlaceResult = thirdPlaceMatch && matchResults[thirdPlaceMatch.id]?.isFinished ? matchResults[thirdPlaceMatch.id] : null
-  const nextExtraDeadline = [FINAL_PRED_DEADLINE, THIRD_PLACE_PRED_DEADLINE]
-    .filter(d => Date.now() < d.getTime())
-    .reduce((min, d) => d.getTime() < min ? d.getTime() : min, Infinity)
   const isFinalistRevealed = MATCHES.some(m => m.stage === 'qf' && hasMatchStarted(m))
   // Revelar predicciones en pestaña Grupo: 28 jun 13:00 COL = 28 jun 18:00 UTC
   const isFinalistVisibleInGroup = Date.now() >= new Date('2026-06-28T18:00:00Z').getTime()
@@ -474,7 +473,7 @@ export default function GroupPage() {
 
   // Estado de secciones colapsables
   const hasAnyLive = liveMatches.length > 0
-  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false, finalPred: true, thirdPlace: true })
+  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false, finalPred: true, thirdPlace: true, topScorer: true })
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
 
   // Cuando hay partidos en curso, colapsar las otras secciones
@@ -806,18 +805,17 @@ export default function GroupPage() {
           <div>
             <h2 className="text-white font-bold text-lg mb-4">⭐ Puntos extra</h2>
 
-            {nextExtraDeadline !== Infinity && <CountdownBanner deadline={nextExtraDeadline} />}
+            {!isFinalistLocked && (
+              <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} label="Cierra 28 jun · 12:00 AM" />
+            )}
 
-            {/* Sección desplegable: La final */}
+            {/* La final */}
             <div className="mb-3">
               <button
                 onClick={() => toggleSection('finalPred')}
                 className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
               >
                 🏟️ La final
-                {!isFinalistLocked && (
-                  <span className="text-gray-400 text-xs font-normal ml-1">· Cierra 28 jun 12:00 AM</span>
-                )}
                 <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.finalPred ? 'rotate-90' : ''}`}>▶</span>
               </button>
               {expandedSections.finalPred && (
@@ -830,20 +828,19 @@ export default function GroupPage() {
                   visibleMembers={visibleMembers}
                   currentUserId={user.uid}
                   finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
+                  label1="Finalista 1"
+                  label2="Finalista 2"
                 />
               )}
             </div>
 
-            {/* Sección desplegable: Tercer puesto */}
-            <div>
+            {/* Tercer puesto */}
+            <div className="mb-3">
               <button
                 onClick={() => toggleSection('thirdPlace')}
                 className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
               >
                 🥉 Tercer puesto
-                {!isThirdPlaceLocked && (
-                  <span className="text-gray-400 text-xs font-normal ml-1">· Cierra 14 jul 12:00 PM</span>
-                )}
                 <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.thirdPlace ? 'rotate-90' : ''}`}>▶</span>
               </button>
               {expandedSections.thirdPlace && (
@@ -858,6 +855,29 @@ export default function GroupPage() {
                   finalResult={thirdPlaceResult}
                   label1="Equipo 1"
                   label2="Equipo 2"
+                />
+              )}
+            </div>
+
+            {/* Goleador del mundial */}
+            <div>
+              <button
+                onClick={() => toggleSection('topScorer')}
+                className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+              >
+                ⚽ Goleador del mundial
+                <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.topScorer ? 'rotate-90' : ''}`}>▶</span>
+              </button>
+              {expandedSections.topScorer && (
+                <TopScorerPredictionCard
+                  prediction={topScorerPredictions[user.uid]}
+                  onSave={saveTopScorerPrediction}
+                  isLocked={isFinalistLocked}
+                  isRevealed={isTopScorerRevealed}
+                  allPredictions={topScorerPredictions}
+                  visibleMembers={visibleMembers}
+                  currentUserId={user.uid}
+                  topScorerResult={null}
                 />
               )}
             </div>

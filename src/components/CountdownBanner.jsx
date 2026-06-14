@@ -17,12 +17,12 @@ function useCountdown(deadline) {
   return { days, hours, expired: remaining <= 0 }
 }
 
-export default function CountdownBanner({ deadline }) {
+export default function CountdownBanner({ deadline, label = 'Cierra 28 jun · 12:00 AM' }) {
   const { days, hours, expired } = useCountdown(deadline)
   if (expired) return null
   return (
-    <div className="bg-gray-900 rounded-xl border border-purple-800/50 p-4 text-center animate-pulse mb-4">
-      <div className="text-gray-400 text-xs mb-1.5">Tiempo restante para predecir</div>
+    <div className="bg-gray-900 rounded-xl border border-purple-800/50 p-4 text-center mb-4">
+      <div className="text-purple-400 text-xs font-semibold mb-1.5">{label}</div>
       <div className="flex items-center justify-center gap-3">
         <div>
           <div className="text-white font-black text-2xl font-mono">{days}</div>
