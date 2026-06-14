@@ -10,6 +10,8 @@ export default function FinalPredictionCard({
   visibleMembers,
   currentUserId,
   finalResult,
+  label1 = 'Finalista 1',
+  label2 = 'Finalista 2',
 }) {
   const [team1, setTeam1] = useState(prediction?.finalTeam1 || '')
   const [team2, setTeam2] = useState(prediction?.finalTeam2 || '')
@@ -49,7 +51,7 @@ export default function FinalPredictionCard({
           <>
             <div className="space-y-3">
               <div>
-                <label className="text-gray-400 text-xs mb-1 block">Finalista 1</label>
+                <label className="text-gray-400 text-xs mb-1 block">{label1}</label>
                 <select
                   value={team1}
                   onChange={e => setTeam1(e.target.value)}
@@ -63,7 +65,7 @@ export default function FinalPredictionCard({
               </div>
               <div className="text-center text-gray-500 text-xs font-bold">VS</div>
               <div>
-                <label className="text-gray-400 text-xs mb-1 block">Finalista 2</label>
+                <label className="text-gray-400 text-xs mb-1 block">{label2}</label>
                 <select
                   value={team2}
                   onChange={e => setTeam2(e.target.value)}

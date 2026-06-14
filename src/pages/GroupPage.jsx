@@ -23,6 +23,8 @@ const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6
 
 // Deadline: 28 jun 2026 00:00 Colombia (UTC-5) = 28 jun 05:00 UTC
 const FINAL_PRED_DEADLINE = new Date('2026-06-28T05:00:00Z')
+// Deadline tercer puesto: antes del inicio de las semifinales (14 jul 2026 12:00 COL = 17:00 UTC)
+const THIRD_PLACE_PRED_DEADLINE = new Date('2026-07-14T17:00:00Z')
 
 export default function GroupPage() {
   const { groupId } = useParams()
@@ -35,6 +37,7 @@ export default function GroupPage() {
   const [predictions, setPredictions] = useState({}) // matchId → prediction (mis predicciones)
   const [allPredictions, setAllPredictions] = useState({}) // uid → { matchId → prediction }
   const [finalPredictions, setFinalPredictions] = useState({}) // uid → { finalTeam1, finalTeam2, updatedAt }
+  const [thirdPlacePredictions, setThirdPlacePredictions] = useState({}) // uid → { finalTeam1, finalTeam2, updatedAt }
   const [scores, setScores] = useState([]) // [{uid, displayName, totalPoints, ...}]
   const [loading, setLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState(null)
@@ -152,10 +155,15 @@ export default function GroupPage() {
     const all = {}
     const mine = {}
     const finals = {}
+    const thirds = {}
     snap.docs.forEach(d => {
       const data = d.data()
       if (data.matchId === 'FINALISTS') {
         finals[data.uid] = data
+        return
+      }
+      if (data.matchId === 'THIRD_PLACE') {
+        thirds[data.uid] = data
         return
       }
       if (!all[data.uid]) all[data.uid] = {}
@@ -165,6 +173,7 @@ export default function GroupPage() {
     setAllPredictions(all)
     setPredictions(mine)
     setFinalPredictions(finals)
+    setThirdPlacePredictions(thirds)
   }
 
   // Listener en tiempo real: escuchar cambios en resultados cuando hay partidos en curso
@@ -370,6 +379,23 @@ export default function GroupPage() {
     }))
   }
 
+  async function saveThirdPlacePrediction(finalTeam1, finalTeam2) {
+    const predId = `${groupId}_THIRD_PLACE_${user.uid}`
+    const predDoc = {
+      groupId,
+      matchId: 'THIRD_PLACE',
+      uid: user.uid,
+      finalTeam1,
+      finalTeam2,
+      updatedAt: serverTimestamp(),
+    }
+    await setDoc(doc(db, 'predictions', predId), predDoc)
+    setThirdPlacePredictions(prev => ({
+      ...prev,
+      [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } }
+    }))
+  }
+
   const copyInviteCode = () => {
     if (!group) return
     navigator.clipboard.writeText(group.inviteCode)
@@ -429,6 +455,13 @@ export default function GroupPage() {
 
   // La Final: deadline y revelacion
   const isFinalistLocked = Date.now() >= FINAL_PRED_DEADLINE.getTime()
+  const isThirdPlaceLocked = Date.now() >= THIRD_PLACE_PRED_DEADLINE.getTime()
+  const isThirdPlaceRevealed = MATCHES.some(m => m.stage === 'sf' && hasMatchStarted(m))
+  const thirdPlaceMatch = MATCHES.find(m => m.stage === '3rd')
+  const thirdPlaceResult = thirdPlaceMatch && matchResults[thirdPlaceMatch.id]?.isFinished ? matchResults[thirdPlaceMatch.id] : null
+  const nextExtraDeadline = [FINAL_PRED_DEADLINE, THIRD_PLACE_PRED_DEADLINE]
+    .filter(d => Date.now() < d.getTime())
+    .reduce((min, d) => d.getTime() < min ? d.getTime() : min, Infinity)
   const isFinalistRevealed = MATCHES.some(m => m.stage === 'qf' && hasMatchStarted(m))
   // Revelar predicciones en pestaña Grupo: 28 jun 13:00 COL = 28 jun 18:00 UTC
   const isFinalistVisibleInGroup = Date.now() >= new Date('2026-06-28T18:00:00Z').getTime()
@@ -441,7 +474,7 @@ export default function GroupPage() {
 
   // Estado de secciones colapsables
   const hasAnyLive = liveMatches.length > 0
-  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false, finalPred: true })
+  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false, finalPred: true, thirdPlace: true })
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
 
   // Cuando hay partidos en curso, colapsar las otras secciones
@@ -773,10 +806,10 @@ export default function GroupPage() {
           <div>
             <h2 className="text-white font-bold text-lg mb-4">⭐ Puntos extra</h2>
 
-            <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} />
+            {nextExtraDeadline !== Infinity && <CountdownBanner deadline={nextExtraDeadline} />}
 
             {/* Sección desplegable: La final */}
-            <div>
+            <div className="mb-3">
               <button
                 onClick={() => toggleSection('finalPred')}
                 className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
@@ -797,6 +830,34 @@ export default function GroupPage() {
                   visibleMembers={visibleMembers}
                   currentUserId={user.uid}
                   finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
+                />
+              )}
+            </div>
+
+            {/* Sección desplegable: Tercer puesto */}
+            <div>
+              <button
+                onClick={() => toggleSection('thirdPlace')}
+                className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+              >
+                🥉 Tercer puesto
+                {!isThirdPlaceLocked && (
+                  <span className="text-gray-400 text-xs font-normal ml-1">· Cierra 14 jul 12:00 PM</span>
+                )}
+                <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.thirdPlace ? 'rotate-90' : ''}`}>▶</span>
+              </button>
+              {expandedSections.thirdPlace && (
+                <FinalPredictionCard
+                  prediction={thirdPlacePredictions[user.uid]}
+                  onSave={saveThirdPlacePrediction}
+                  isLocked={isThirdPlaceLocked}
+                  isRevealed={isThirdPlaceRevealed}
+                  allFinalPredictions={thirdPlacePredictions}
+                  visibleMembers={visibleMembers}
+                  currentUserId={user.uid}
+                  finalResult={thirdPlaceResult}
+                  label1="Equipo 1"
+                  label2="Equipo 2"
                 />
               )}
             </div>
