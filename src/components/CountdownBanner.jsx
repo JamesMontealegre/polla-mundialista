@@ -21,7 +21,7 @@ export default function CountdownBanner({ deadline, label = 'Cierra 28 jun · 12
   const { days, hours, expired } = useCountdown(deadline)
   if (expired) return null
   return (
-    <div className="bg-gray-900 rounded-xl border border-purple-800/50 p-4 text-center mb-4">
+    <div className="gem-radiate bg-gray-900 rounded-xl border p-4 text-center mb-4">
       <div className="text-purple-400 text-xs font-semibold mb-1.5">{label}</div>
       <div className="flex items-center justify-center gap-3">
         <div>

@@ -111,3 +111,22 @@ input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
   opacity: 1;
 }
+
+/* Gem radiate — countdown banner jewel glow */
+@keyframes gem-radiate {
+  0%, 100% {
+    box-shadow: 0 0 10px 3px rgba(168,85,247,0.45), 0 0 28px 8px rgba(168,85,247,0.15), 0 0 55px 14px rgba(168,85,247,0.06);
+    border-color: rgba(168,85,247,0.7);
+  }
+  30% {
+    box-shadow: 0 0 10px 3px rgba(212,175,55,0.45), 0 0 28px 8px rgba(212,175,55,0.15), 0 0 55px 14px rgba(212,175,55,0.06);
+    border-color: rgba(212,175,55,0.7);
+  }
+  60% {
+    box-shadow: 0 0 10px 3px rgba(56,189,248,0.45), 0 0 28px 8px rgba(56,189,248,0.15), 0 0 55px 14px rgba(56,189,248,0.06);
+    border-color: rgba(56,189,248,0.7);
+  }
+}
+.gem-radiate {
+  animation: gem-radiate 4s ease-in-out infinite;
+}
