@@ -1045,6 +1045,9 @@ export default function GroupPage() {
           groupId={groupId}
           memberDocId={myMembership.docId}
           currentStatus={myPaymentStatus}
+          groupName={group?.name}
+          adminIds={group?.adminIds || []}
+          memberName={user?.displayName}
           onUploadComplete={() => {
             setShowPaymentModal(false)
             loadMembers()

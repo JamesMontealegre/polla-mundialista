@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { createWorker } from 'tesseract.js'
 
@@ -46,7 +46,7 @@ function extractDestination(text) {
   return { hasNequiNumber, hasName, matched: hasNequiNumber || hasName }
 }
 
-export default function PaymentModal({ groupId, memberDocId, currentStatus, onUploadComplete, onClose }) {
+export default function PaymentModal({ groupId, memberDocId, currentStatus, onUploadComplete, onClose, groupName, adminIds = [], memberName }) {
   const [preview, setPreview] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [scanProgress, setScanProgress] = useState(0)
@@ -144,6 +144,17 @@ export default function PaymentModal({ groupId, memberDocId, currentStatus, onUp
           submittedAt: new Date().toISOString(),
         },
       })
+      // Notificar a cada admin del grupo
+      await Promise.all(adminIds.map(adminUid =>
+        addDoc(collection(db, 'userNotifications'), {
+          userId: adminUid,
+          title: groupName || 'Polla',
+          message: `Nueva solicitud de aprobación · ${memberName || 'Un participante'} subió su comprobante`,
+          type: 'payment',
+          read: false,
+          createdAt: serverTimestamp(),
+        })
+      ))
       onUploadComplete()
     } catch (err) {
       console.error('Error enviando datos de pago:', err)
