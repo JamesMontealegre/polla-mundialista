@@ -121,7 +121,7 @@ export const MATCHES = [
   // Sábado 20 de junio
   { id: 'M033', matchNum: 33, group: 'F', stage: 'group', matchday: 2, team1: 'Países Bajos', team2: 'Suecia', date: '2026-06-20T12:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
   { id: 'M034', matchNum: 34, group: 'E', stage: 'group', matchday: 2, team1: 'Alemania', team2: 'Costa de Marfil', date: '2026-06-20T15:00:00-05:00', venue: 'BMO Field', city: 'Toronto' },
-  { id: 'M035', matchNum: 35, group: 'E', stage: 'group', matchday: 2, team1: 'Ecuador', team2: 'Curazao', date: '2026-06-20T21:00:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
+  { id: 'M035', matchNum: 35, group: 'E', stage: 'group', matchday: 2, team1: 'Ecuador', team2: 'Curazao', date: '2026-06-20T19:00:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
   { id: 'M036', matchNum: 36, group: 'F', stage: 'group', matchday: 2, team1: 'Túnez', team2: 'Japón', date: '2026-06-20T23:00:00-05:00', venue: 'Estadio BBVA', city: 'Monterrey' },
   // Domingo 21 de junio
   { id: 'M037', matchNum: 37, group: 'H', stage: 'group', matchday: 2, team1: 'España', team2: 'Arabia Saudí', date: '2026-06-21T11:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
