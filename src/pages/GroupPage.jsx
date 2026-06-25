@@ -444,6 +444,29 @@ export default function GroupPage() {
     setGroup(prev => ({ ...prev, paymentAmount: newAmount }))
   }
 
+  async function updateExtraPaymentAmount(newAmount) {
+    await updateDoc(doc(db, 'groups', groupId), { extraPaymentAmount: newAmount })
+    setGroup(prev => ({ ...prev, extraPaymentAmount: newAmount }))
+  }
+
+  async function updateExtraPaymentStatus(member, newStatus) {
+    try {
+      await updateDoc(doc(db, 'groupMembers', member.docId), {
+        extraPaymentStatus: newStatus,
+        extraPaymentReviewedAt: new Date().toISOString(),
+        extraPaymentReviewedBy: user.uid,
+      })
+      setMembers(prev => prev.map(m =>
+        m.docId === member.docId ? { ...m, extraPaymentStatus: newStatus } : m
+      ))
+    } catch (err) {
+      console.error('Error actualizando pago extra:', err)
+      if (err?.code === 'permission-denied' || err?.message?.includes('Missing or insufficient permissions')) {
+        handlePermissionError()
+      }
+    }
+  }
+
   const copyInviteCode = () => {
     if (!group) return
     navigator.clipboard.writeText(group.inviteCode)
@@ -461,11 +484,13 @@ export default function GroupPage() {
   // Membership y estado de pago del usuario actual
   const myMembership = members.find(m => m.uid === user.uid)
   const myPaymentStatus = myMembership?.paymentStatus || 'pending'
+  const myExtraPaymentStatus = myMembership?.extraPaymentStatus || 'pending'
   const isGroupAdmin = group?.adminIds?.includes(user.uid)
   const isGroupPaid = group?.isPaid !== false
   const isPaymentConfirmed = !isGroupPaid || myPaymentStatus === 'confirmed' || isGroupAdmin
   const paymentAmount = group?.paymentAmount || 30000
-  const extrasPaymentBlocked = isGroupPaid && !isPaymentConfirmed
+  const extraPaymentAmount = group?.extraPaymentAmount || 10000
+  const extrasPaymentBlocked = isGroupPaid && !(myExtraPaymentStatus === 'confirmed' || isGroupAdmin)
 
   // Helper: miembro oculto (admin del grupo o perfil de prueba)
   const isHiddenMember = (m) => {
@@ -856,60 +881,35 @@ export default function GroupPage() {
               <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} label="Cierra 28 jun · 12:00 AM" />
             )}
 
-            {/* Admin: editor de monto */}
-            {isGroupAdmin && (
-              <AdminPaymentAmountEditor amount={paymentAmount} onSave={updatePaymentAmount} />
-            )}
-
-            {/* No-admin: estado de pago */}
+            {/* No-admin: estado del pago extra (independiente al pago inicial) */}
             {!isGroupAdmin && isGroupPaid && myMembership && (() => {
+              if (!isPaymentConfirmed) {
+                return (
+                  <div className="bg-gray-800 border border-gray-600 rounded-xl p-4 mb-4">
+                    <div className="text-gray-400 font-bold text-sm">Pago inicial pendiente</div>
+                    <p className="text-gray-500 text-xs mt-0.5">Primero confirma tu pago de la polla para acceder a los puntos extra</p>
+                  </div>
+                )
+              }
               const statusMap = {
                 confirmed: {
                   bg: 'bg-green-900/20 border-green-700',
-                  label: '✅ Pago confirmado',
-                  desc: 'Ya puedes realizar tus predicciones',
+                  label: '✅ Puntos extra habilitados',
+                  desc: 'Ya puedes realizar tus predicciones de puntos extra',
                   labelColor: 'text-green-300',
-                  btn: null,
-                },
-                uploaded: {
-                  bg: 'bg-blue-900/20 border-blue-700',
-                  label: 'Comprobante en revisión',
-                  desc: 'El admin está verificando tu comprobante',
-                  labelColor: 'text-blue-300',
-                  btn: { text: 'Ver estado', style: 'bg-blue-700 text-white hover:bg-blue-600' },
-                },
-                rejected: {
-                  bg: 'bg-red-900/20 border-red-700',
-                  label: 'Comprobante rechazado',
-                  desc: 'Tu comprobante fue rechazado. Sube uno nuevo.',
-                  labelColor: 'text-red-300',
-                  btn: { text: '↑ Resubir', style: 'bg-wc-gold text-wc-dark hover:bg-yellow-400' },
                 },
                 pending: {
                   bg: 'bg-yellow-900/20 border-yellow-700',
-                  label: 'Pago pendiente',
-                  desc: 'Confirma tu inscripción para habilitar las predicciones',
+                  label: `Puntos extra · $${extraPaymentAmount.toLocaleString('es-CO')} COP adicionales`,
+                  desc: 'Realiza el pago y notifica al admin para habilitarte',
                   labelColor: 'text-yellow-300',
-                  btn: { text: '💳 Pagar', style: 'bg-wc-gold text-wc-dark hover:bg-yellow-400' },
                 },
               }
-              const cfg = statusMap[myPaymentStatus] || statusMap.pending
+              const cfg = statusMap[myExtraPaymentStatus] || statusMap.pending
               return (
                 <div className={`border rounded-xl p-4 mb-4 ${cfg.bg}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className={`font-bold text-sm ${cfg.labelColor}`}>{cfg.label}</div>
-                      <p className="text-gray-400 text-xs mt-0.5">{cfg.desc}</p>
-                    </div>
-                    {cfg.btn && (
-                      <button
-                        onClick={() => setShowPaymentModal(true)}
-                        className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-xs transition-colors ${cfg.btn.style}`}
-                      >
-                        {cfg.btn.text}
-                      </button>
-                    )}
-                  </div>
+                  <div className={`font-bold text-sm ${cfg.labelColor}`}>{cfg.label}</div>
+                  <p className="text-gray-400 text-xs mt-0.5">{cfg.desc}</p>
                 </div>
               )
             })()}
@@ -1103,125 +1103,159 @@ export default function GroupPage() {
 
         {/* PAYMENTS TAB (admin only, paid groups only) */}
         {activeTab === 'payments' && isGroupPaid && isAdmin && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">💰 Gestion de Pagos</h2>
-              <span className="text-gray-400 text-xs">
-                {visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length}/{visibleMembers.length} habilitados
-              </span>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-bold text-lg">💰 Gestión de Pagos</h2>
             </div>
-            {/* Monto configurable */}
-            <AdminPaymentAmountEditor amount={paymentAmount} onSave={updatePaymentAmount} />
 
-            <div className="space-y-2">
-              {[...visibleMembers].sort((a, b) => {
-                const order = { uploaded: 0, pending: 1, rejected: 2, confirmed: 3 }
-                return (order[a.paymentStatus] ?? 1) - (order[b.paymentStatus] ?? 1)
-              }).map(m => {
-                const pStatus = m.paymentStatus || 'pending'
-                const statusConfig = {
-                  pending: { label: 'Pendiente', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-700' },
-                  uploaded: { label: 'Enviado', color: 'text-blue-400 bg-blue-900/30 border-blue-700' },
-                  confirmed: { label: 'Habilitado', color: 'text-green-400 bg-green-900/30 border-green-700' },
-                  rejected: { label: 'Rechazado', color: 'text-red-400 bg-red-900/30 border-red-700' },
-                }
-                const cfg = statusConfig[pStatus] || statusConfig.pending
-
-                return (
-                  <div key={m.uid} className={`bg-gray-900 rounded-xl border ${pStatus === 'uploaded' ? 'border-blue-700' : 'border-gray-700'} overflow-hidden`}>
-                    {/* Header: user info + status */}
-                    <div className="flex items-center gap-3 p-3">
-                      {m.photoURL ? (
-                        <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
+            {/* ── Sección 1: Pago de la polla ── */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-semibold text-sm">🏆 Pago de la polla</h3>
+                <span className="text-gray-400 text-xs">
+                  {visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length}/{visibleMembers.length} habilitados
+                </span>
+              </div>
+              <AdminPaymentAmountEditor amount={paymentAmount} onSave={updatePaymentAmount} />
+              <div className="space-y-2">
+                {[...visibleMembers].sort((a, b) => {
+                  const order = { uploaded: 0, pending: 1, rejected: 2, confirmed: 3 }
+                  return (order[a.paymentStatus] ?? 1) - (order[b.paymentStatus] ?? 1)
+                }).map(m => {
+                  const pStatus = m.paymentStatus || 'pending'
+                  const statusConfig = {
+                    pending: { label: 'Pendiente', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-700' },
+                    uploaded: { label: 'Enviado', color: 'text-blue-400 bg-blue-900/30 border-blue-700' },
+                    confirmed: { label: 'Habilitado', color: 'text-green-400 bg-green-900/30 border-green-700' },
+                    rejected: { label: 'Rechazado', color: 'text-red-400 bg-red-900/30 border-red-700' },
+                  }
+                  const cfg = statusConfig[pStatus] || statusConfig.pending
+                  return (
+                    <div key={m.uid} className={`bg-gray-900 rounded-xl border ${pStatus === 'uploaded' ? 'border-blue-700' : 'border-gray-700'} overflow-hidden`}>
+                      <div className="flex items-center gap-3 p-3">
+                        {m.photoURL ? (
+                          <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
+                            {m.displayName?.[0]?.toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-semibold text-sm truncate">
+                            {m.displayName}
+                            {m.phoneNumber
+                              ? <span className="text-gray-400 font-normal"> - {m.phoneNumber}</span>
+                              : <span className="text-gray-500 font-normal italic"> - celular no inscrito</span>
+                            }
+                          </div>
+                          <span className={`text-xs px-1.5 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
+                        </div>
+                      </div>
+                      {m.receiptData ? (
+                        <div className="px-3 pb-3">
+                          <div className="bg-gray-800 rounded-lg p-3 space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400 text-xs">Monto verificado</span>
+                              <span className="text-white font-bold text-sm">${m.receiptData.amount?.toLocaleString('es-CO')}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400 text-xs">Destino</span>
+                              <span className="text-white text-xs">
+                                {m.receiptData.destType === 'nequi' ? 'Nequi detectado' : m.receiptData.destType === 'nombre' ? 'Nombre detectado' : '—'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400 text-xs">Fecha envío</span>
+                              <span className="text-white text-xs">
+                                {m.receiptData.submittedAt
+                                  ? new Date(m.receiptData.submittedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                                  : '—'}
+                              </span>
+                            </div>
+                          </div>
+                          {pStatus === 'uploaded' && (
+                            <div className="flex gap-2 mt-2">
+                              <button onClick={() => updatePaymentStatus(m, 'confirmed')} className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors">Confirmar pago</button>
+                              <button onClick={() => updatePaymentStatus(m, 'rejected')} className="flex-1 text-xs py-2 rounded-lg bg-red-900/50 text-red-400 hover:bg-red-900 border border-red-800 font-bold transition-colors">Rechazar</button>
+                            </div>
+                          )}
+                          {pStatus === 'rejected' && (
+                            <div className="flex gap-2 mt-2">
+                              <button onClick={() => updatePaymentStatus(m, 'confirmed')} className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors">Confirmar pago</button>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
-                          {m.displayName?.[0]?.toUpperCase()}
+                        <div className="px-3 pb-3">
+                          <div className="text-gray-500 text-xs italic">No ha enviado comprobante</div>
+                          {pStatus !== 'confirmed' && (
+                            <button onClick={() => updatePaymentStatus(m, 'confirmed')} className="mt-2 text-xs py-1.5 px-3 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors">Confirmar manualmente</button>
+                          )}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-white font-semibold text-sm truncate">
-                          {m.displayName}
-                          {m.phoneNumber
-                            ? <span className="text-gray-400 font-normal"> - {m.phoneNumber}</span>
-                            : <span className="text-gray-500 font-normal italic"> - celular no inscrito</span>
-                          }
-                        </div>
-                        <span className={`text-xs px-1.5 py-0.5 rounded border ${cfg.color}`}>
-                          {cfg.label}
-                        </span>
-                      </div>
                     </div>
+                  )
+                })}
+              </div>
+            </div>
 
-                    {/* Transaction details */}
-                    {m.receiptData ? (
-                      <div className="px-3 pb-3">
-                        <div className="bg-gray-800 rounded-lg p-3 space-y-1.5">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-400 text-xs">Monto verificado</span>
-                            <span className="text-white font-bold text-sm">
-                              ${m.receiptData.amount?.toLocaleString('es-CO')}
-                            </span>
+            {/* ── Sección 2: Puntos extra ── */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-semibold text-sm">⭐ Puntos extra</h3>
+                <span className="text-gray-400 text-xs">
+                  {visibleMembers.filter(m => (m.extraPaymentStatus || 'pending') === 'confirmed').length}/{visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length} habilitados
+                </span>
+              </div>
+              <AdminPaymentAmountEditor amount={extraPaymentAmount} onSave={updateExtraPaymentAmount} />
+              <p className="text-gray-500 text-xs mb-3">Solo aparecen jugadores con pago de polla confirmado</p>
+              <div className="space-y-2">
+                {visibleMembers
+                  .filter(m => (m.paymentStatus || 'pending') === 'confirmed')
+                  .sort((a, b) => {
+                    const order = { pending: 0, confirmed: 1 }
+                    return (order[a.extraPaymentStatus] ?? 0) - (order[b.extraPaymentStatus] ?? 0)
+                  })
+                  .map(m => {
+                    const eStatus = m.extraPaymentStatus || 'pending'
+                    const isExtraConfirmed = eStatus === 'confirmed'
+                    return (
+                      <div key={m.uid} className="bg-gray-900 rounded-xl border border-gray-700 flex items-center gap-3 p-3">
+                        {m.photoURL ? (
+                          <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
+                            {m.displayName?.[0]?.toUpperCase()}
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-400 text-xs">Destino</span>
-                            <span className="text-white text-xs">
-                              {m.receiptData.destType === 'nequi' ? 'Nequi detectado' : m.receiptData.destType === 'nombre' ? 'Nombre detectado' : '—'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-400 text-xs">Fecha envio</span>
-                            <span className="text-white text-xs">
-                              {m.receiptData.submittedAt
-                                ? new Date(m.receiptData.submittedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                                : '—'}
-                            </span>
-                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-semibold text-sm truncate">{m.displayName}</div>
+                          <span className={`text-xs px-1.5 py-0.5 rounded border ${isExtraConfirmed ? 'text-green-400 bg-green-900/30 border-green-700' : 'text-yellow-400 bg-yellow-900/30 border-yellow-700'}`}>
+                            {isExtraConfirmed ? 'Habilitado' : 'Pendiente'}
+                          </span>
                         </div>
-
-                        {/* Action buttons for uploaded receipts */}
-                        {pStatus === 'uploaded' && (
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => updatePaymentStatus(m, 'confirmed')}
-                              className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
-                            >
-                              Confirmar pago
-                            </button>
-                            <button
-                              onClick={() => updatePaymentStatus(m, 'rejected')}
-                              className="flex-1 text-xs py-2 rounded-lg bg-red-900/50 text-red-400 hover:bg-red-900 border border-red-800 font-bold transition-colors"
-                            >
-                              Rechazar
-                            </button>
-                          </div>
-                        )}
-                        {pStatus === 'rejected' && (
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => updatePaymentStatus(m, 'confirmed')}
-                              className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
-                            >
-                              Confirmar pago
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="px-3 pb-3">
-                        <div className="text-gray-500 text-xs italic">No ha enviado comprobante</div>
-                        {pStatus !== 'confirmed' && (
+                        {!isExtraConfirmed ? (
                           <button
-                            onClick={() => updatePaymentStatus(m, 'confirmed')}
-                            className="mt-2 text-xs py-1.5 px-3 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
+                            onClick={() => updateExtraPaymentStatus(m, 'confirmed')}
+                            className="text-xs py-1.5 px-3 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors shrink-0"
                           >
-                            Confirmar manualmente
+                            Habilitar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateExtraPaymentStatus(m, 'pending')}
+                            className="text-xs py-1.5 px-3 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-600 transition-colors shrink-0"
+                          >
+                            Revocar
                           </button>
                         )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                    )
+                  })}
+                {visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length === 0 && (
+                  <p className="text-gray-500 text-xs text-center py-4">Ningún jugador ha confirmado el pago inicial aún</p>
+                )}
+              </div>
             </div>
           </div>
         )}
