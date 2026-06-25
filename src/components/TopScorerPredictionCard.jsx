@@ -10,7 +10,7 @@ function checkTopScorer(pred, result) {
     teamCorrect,
     jerseyCorrect,
     goalsCorrect,
-    points: (teamCorrect ? 1 : 0) + (jerseyCorrect ? 1 : 0) + (goalsCorrect ? 1 : 0),
+    points: (goalsCorrect ? 3 : 0) + (teamCorrect ? 1 : 0) + (jerseyCorrect ? 1 : 0),
   }
 }
 
@@ -136,14 +136,14 @@ export default function TopScorerPredictionCard({
             </div>
             {myResult !== null ? (
               <div className="space-y-1 mt-2 border-t border-gray-700 pt-2">
+                <div className={`text-xs ${myResult.goalsCorrect ? 'text-green-400' : 'text-gray-500'}`}>
+                  {myResult.goalsCorrect ? '✓ Goles correctos +3 pts' : '✗ Goles incorrectos'}
+                </div>
                 <div className={`text-xs ${myResult.teamCorrect ? 'text-green-400' : 'text-gray-500'}`}>
                   {myResult.teamCorrect ? '✓ Seleccionado correcto +1 pt' : '✗ Seleccionado incorrecto'}
                 </div>
                 <div className={`text-xs ${myResult.jerseyCorrect ? 'text-green-400' : 'text-gray-500'}`}>
                   {myResult.jerseyCorrect ? '✓ Camiseta correcta +1 pt' : '✗ Camiseta incorrecta'}
-                </div>
-                <div className={`text-xs ${myResult.goalsCorrect ? 'text-green-400' : 'text-gray-500'}`}>
-                  {myResult.goalsCorrect ? '✓ Goles correctos +1 pt' : '✗ Goles incorrectos'}
                 </div>
                 {myResult.points > 0 && (
                   <div className="text-sm font-bold text-green-400">🎉 +{myResult.points} pts</div>

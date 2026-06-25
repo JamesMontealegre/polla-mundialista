@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, serverTimestamp, onSnapshot
+  doc, getDoc, collection, query, where, getDocs, setDoc, addDoc, deleteDoc, updateDoc, serverTimestamp, onSnapshot
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
-import { MATCHES, STAGE_NAMES, FLAGS, hasMatchStarted, getActiveDateMatches } from '../data/matches'
+import { MATCHES, STAGE_NAMES, FLAGS, ALL_TEAMS, hasMatchStarted, getActiveDateMatches } from '../data/matches'
 import { calculatePoints } from '../utils/scoring'
 import MatchCard from '../components/MatchCard'
 import PredictionModal from '../components/PredictionModal'
@@ -64,6 +64,50 @@ function AdminPaymentAmountEditor({ amount, onSave, label = 'Monto de inscripci�
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function AdminTopScorerResult({ current, onSave }) {
+  const [team, setTeam] = useState(current?.team || '')
+  const [jersey, setJersey] = useState(current?.jerseyNumber || '')
+  const [goals, setGoals] = useState(current?.goals || '')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!team || !jersey || !goals || saving) return
+    setSaving(true)
+    await onSave(team, jersey, goals)
+    setSaving(false)
+  }
+
+  return (
+    <div className="mt-3 bg-gray-900 border border-dashed border-gray-600 rounded-xl p-4">
+      <div className="text-gray-400 text-xs font-semibold mb-2">Admin · Registrar resultado del goleador</div>
+      <div className="space-y-2">
+        <select value={team} onChange={e => setTeam(e.target.value)} className="w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none">
+          <option value="">Seleccionar seleccionado...</option>
+          {ALL_TEAMS.map(t => <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>)}
+        </select>
+        <div className="flex gap-2">
+          <select value={jersey} onChange={e => setJersey(e.target.value)} className="flex-1 bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none">
+            <option value="">Camiseta...</option>
+            {Array.from({ length: 99 }, (_, i) => i + 1).map(n => <option key={n} value={n}>#{n}</option>)}
+          </select>
+          <select value={goals} onChange={e => setGoals(e.target.value)} className="flex-1 bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none">
+            <option value="">Goles...</option>
+            {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} gol{n > 1 ? 'es' : ''}</option>)}
+          </select>
+        </div>
+        <button onClick={handleSave} disabled={!team || !jersey || !goals || saving} className="w-full py-2 rounded-lg bg-wc-gold text-wc-dark font-bold text-sm disabled:opacity-50 hover:bg-yellow-400 transition-colors">
+          {saving ? 'Guardando...' : current ? 'Actualizar resultado' : 'Guardar resultado'}
+        </button>
+      </div>
+      {current && (
+        <p className="text-gray-500 text-xs mt-2 text-center">
+          Resultado actual: {FLAGS[current.team]} {current.team} · #{current.jerseyNumber} · {current.goals} goles
+        </p>
+      )}
     </div>
   )
 }
@@ -242,7 +286,7 @@ export default function GroupPage() {
   useEffect(() => {
     if (members.length === 0 || Object.keys(matchResults).length === 0) return
     computeScores()
-  }, [members, matchResults, allPredictions, finalPredictions])
+  }, [members, matchResults, allPredictions, finalPredictions, thirdPlacePredictions, topScorerPredictions, group])
 
   function computeScores() {
     // UIDs ocultos (admins + perfiles de prueba)
@@ -326,25 +370,38 @@ export default function GroupPage() {
 
       const anticipation = Object.values(anticipationWinners).filter(uid => uid === member.uid).length
 
-      // Puntos extra (final + tercer puesto: max 6 c/u)
+      // Puntos extra — solo se suman cuando el admin los revela
       let finalistBonus = 0
+      const extrasAreRevealed = group?.extrasRevealed === true
 
-      function extraBonus(result, pred) {
-        if (!result?.isFinished || !pred) return 0
-        const actualTeams = new Set([result.team1, result.team2])
-        const predTeams = new Set([pred.finalTeam1, pred.finalTeam2])
-        const teamsOk = actualTeams.size === 2 && predTeams.size === 2 && [...predTeams].every(t => actualTeams.has(t))
-        const actualWinner = result.team1Goals > result.team2Goals ? result.team1
-          : result.team2Goals > result.team1Goals ? result.team2 : null
-        const resultOk = Boolean(actualWinner && pred.winner === actualWinner)
-        return (teamsOk ? 3 : 0) + (resultOk ? 2 : 0)
-      }
+      if (extrasAreRevealed) {
+        function extraBonus(result, pred) {
+          if (!result?.isFinished || !pred) return 0
+          const actualTeams = new Set([result.team1, result.team2])
+          const predTeams = new Set([pred.finalTeam1, pred.finalTeam2])
+          const teamsOk = actualTeams.size === 2 && predTeams.size === 2 && [...predTeams].every(t => actualTeams.has(t))
+          const actualWinner = result.team1Goals > result.team2Goals ? result.team1
+            : result.team2Goals > result.team1Goals ? result.team2 : null
+          const resultOk = Boolean(actualWinner && pred.winner === actualWinner)
+          return (teamsOk ? 3 : 0) + (resultOk ? 2 : 0)
+        }
 
-      finalistBonus += extraBonus(matchResults['FINAL'], finalPredictions[member.uid])
+        finalistBonus += extraBonus(matchResults['FINAL'], finalPredictions[member.uid])
 
-      const thirdPlaceMatchId = MATCHES.find(m => m.stage === '3rd')?.id
-      if (thirdPlaceMatchId) {
-        finalistBonus += extraBonus(matchResults[thirdPlaceMatchId], thirdPlacePredictions[member.uid])
+        const thirdPlaceMatchId = MATCHES.find(m => m.stage === '3rd')?.id
+        if (thirdPlaceMatchId) {
+          finalistBonus += extraBonus(matchResults[thirdPlaceMatchId], thirdPlacePredictions[member.uid])
+        }
+
+        // Goleador: goles=3pts, seleccionado=1pt, camiseta=1pt (max 5)
+        const tsResult = group?.topScorerResult
+        const tsPred = topScorerPredictions[member.uid]
+        if (tsResult && tsPred) {
+          const goalsOk = String(tsPred.goals) === String(tsResult.goals)
+          const teamOk = tsPred.team === tsResult.team
+          const jerseyOk = String(tsPred.jerseyNumber) === String(tsResult.jerseyNumber)
+          finalistBonus += (goalsOk ? 3 : 0) + (teamOk ? 1 : 0) + (jerseyOk ? 1 : 0)
+        }
       }
 
       return {
@@ -467,6 +524,30 @@ export default function GroupPage() {
     }
   }
 
+  async function setTopScorerResult(team, jerseyNumber, goals) {
+    const result = { team, jerseyNumber, goals }
+    await updateDoc(doc(db, 'groups', groupId), { topScorerResult: result })
+    setGroup(prev => ({ ...prev, topScorerResult: result }))
+  }
+
+  async function revealExtraPoints() {
+    if (!confirm('¿Revelar los puntos extra y notificar a todos los jugadores? Esta acción no se puede deshacer.')) return
+    await updateDoc(doc(db, 'groups', groupId), { extrasRevealed: true })
+    setGroup(prev => ({ ...prev, extrasRevealed: true }))
+    await Promise.all(
+      visibleMembers.map(m =>
+        addDoc(collection(db, 'userNotifications'), {
+          userId: m.uid,
+          title: group?.name || 'Polla mundialista',
+          message: '⭐ Los puntos extra han sido revelados · ¡Revisa tu puntaje!',
+          type: 'extra_reveal',
+          read: false,
+          createdAt: serverTimestamp(),
+        })
+      )
+    )
+  }
+
   const copyInviteCode = () => {
     if (!group) return
     navigator.clipboard.writeText(group.inviteCode)
@@ -538,6 +619,10 @@ export default function GroupPage() {
   const isFinalistRevealed = MATCHES.some(m => m.stage === 'qf' && hasMatchStarted(m))
   // Revelar predicciones en pestaña Grupo: 28 jun 13:00 COL = 28 jun 18:00 UTC
   const isFinalistVisibleInGroup = Date.now() >= new Date('2026-06-28T18:00:00Z').getTime()
+  // Puntos extra: revelados manualmente por admin; botón habilitado cuando la final termina
+  const extrasRevealed = group?.extrasRevealed === true
+  const finalIsFinished = matchResults['FINAL']?.isFinished === true
+  const canRevealExtras = finalIsFinished && !extrasRevealed
 
   // Tres categorias de partidos (controlado por el admin)
   const liveMatches = filteredMatches.filter(m => matchResults[m.id]?.isLive)
@@ -977,24 +1062,55 @@ export default function GroupPage() {
                 className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
               >
                 ⚽ Goleador del mundial
-                <span className="text-gray-500 text-xs italic font-normal">+3 pts</span>
+                <span className="text-gray-500 text-xs italic font-normal">+5 pts</span>
                 <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.topScorer ? 'rotate-90' : ''}`}>▶</span>
               </button>
               {expandedSections.topScorer && (
-                <TopScorerPredictionCard
-                  prediction={topScorerPredictions[user.uid]}
-                  onSave={saveTopScorerPrediction}
-                  isLocked={isFinalistLocked}
-                  isRevealed={isTopScorerRevealed}
-                  allPredictions={topScorerPredictions}
-                  visibleMembers={visibleMembers}
-                  currentUserId={user.uid}
-                  topScorerResult={null}
-                  paymentBlocked={extrasPaymentBlocked}
-                  paymentBlockedMessage="El admin debe habilitarte para los puntos extra"
-                />
+                <>
+                  <TopScorerPredictionCard
+                    prediction={topScorerPredictions[user.uid]}
+                    onSave={saveTopScorerPrediction}
+                    isLocked={isFinalistLocked}
+                    isRevealed={isTopScorerRevealed}
+                    allPredictions={topScorerPredictions}
+                    visibleMembers={visibleMembers}
+                    currentUserId={user.uid}
+                    topScorerResult={group?.topScorerResult || null}
+                    paymentBlocked={extrasPaymentBlocked}
+                    paymentBlockedMessage="El admin debe habilitarte para los puntos extra"
+                  />
+                  {isGroupAdmin && (
+                    <AdminTopScorerResult
+                      current={group?.topScorerResult}
+                      onSave={setTopScorerResult}
+                    />
+                  )}
+                </>
               )}
             </div>
+
+            {/* Admin: botón revelar puntos */}
+            {isGroupAdmin && (
+              <div className="mt-6 bg-gray-900 border border-gray-700 rounded-xl p-4">
+                <div className="text-white font-semibold text-sm mb-1">Revelar puntos extra</div>
+                <p className="text-gray-400 text-xs mb-3">
+                  {extrasRevealed
+                    ? '✅ Los puntos extra ya fueron revelados y sumados al ranking'
+                    : finalIsFinished
+                    ? 'El mundial terminó. Puedes revelar los puntos y notificar a todos los jugadores.'
+                    : 'Este botón se habilita cuando el partido final esté marcado como terminado.'}
+                </p>
+                {!extrasRevealed && (
+                  <button
+                    onClick={revealExtraPoints}
+                    disabled={!canRevealExtras}
+                    className="w-full py-2.5 rounded-lg bg-wc-gold text-wc-dark font-bold text-sm disabled:opacity-40 hover:bg-yellow-400 transition-colors"
+                  >
+                    ⭐ Revelar puntos y notificar
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
