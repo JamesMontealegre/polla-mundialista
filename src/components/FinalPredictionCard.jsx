@@ -26,6 +26,7 @@ export default function FinalPredictionCard({
   label2 = 'Equipo 2',
   paymentBlocked = false,
   onPaymentRequired,
+  paymentBlockedMessage = 'Confirma tu pago para habilitar esta predicción',
 }) {
   const [team1, setTeam1] = useState(prediction?.finalTeam1 || '')
   const [team2, setTeam2] = useState(prediction?.finalTeam2 || '')
@@ -65,13 +66,15 @@ export default function FinalPredictionCard({
 
         {paymentBlocked ? (
           <div className="bg-gray-800 rounded-lg p-4 text-center space-y-3">
-            <p className="text-gray-400 text-sm">Confirma tu pago para habilitar esta predicción</p>
-            <button
-              onClick={onPaymentRequired}
-              className="w-full py-2.5 rounded-lg bg-wc-gold text-wc-dark font-bold text-sm hover:bg-yellow-400 transition-colors"
-            >
-              💳 Ir a pagos
-            </button>
+            <p className="text-gray-400 text-sm">{paymentBlockedMessage}</p>
+            {onPaymentRequired && (
+              <button
+                onClick={onPaymentRequired}
+                className="w-full py-2.5 rounded-lg bg-wc-gold text-wc-dark font-bold text-sm hover:bg-yellow-400 transition-colors"
+              >
+                💳 Ir a pagos
+              </button>
+            )}
           </div>
         ) : !isLocked ? (
           <>
