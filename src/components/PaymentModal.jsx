@@ -5,8 +5,7 @@ import { createWorker } from 'tesseract.js'
 
 const NEQUI_NUMBER = '3219128803'
 const ADMIN_NAME = 'James Montealegre'
-const EXPECTED_AMOUNT = 30000
-const AMOUNT_TOLERANCE = 0 // Monto exacto requerido
+const AMOUNT_TOLERANCE = 0
 
 // Extract amounts from OCR text (handles $30.000, $30,000, $30.000,00, etc.)
 function extractAmounts(text) {
@@ -46,7 +45,7 @@ function extractDestination(text) {
   return { hasNequiNumber, hasName, matched: hasNequiNumber || hasName }
 }
 
-export default function PaymentModal({ groupId, memberDocId, currentStatus, onUploadComplete, onClose, groupName, adminIds = [], memberName }) {
+export default function PaymentModal({ groupId, memberDocId, currentStatus, onUploadComplete, onClose, groupName, adminIds = [], memberName, paymentAmount = 30000 }) {
   const [preview, setPreview] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [scanProgress, setScanProgress] = useState(0)
@@ -100,15 +99,15 @@ export default function PaymentModal({ groupId, memberDocId, currentStatus, onUp
       const amounts = extractAmounts(text)
       const dest = extractDestination(text)
 
-      const minAmount = EXPECTED_AMOUNT - AMOUNT_TOLERANCE
-      const maxAmount = EXPECTED_AMOUNT + AMOUNT_TOLERANCE
+      const minAmount = paymentAmount - AMOUNT_TOLERANCE
+      const maxAmount = paymentAmount + AMOUNT_TOLERANCE
       const matchingAmount = amounts.find(a => a >= minAmount && a <= maxAmount)
       const amountOk = !!matchingAmount
       const destOk = dest.matched
 
       // Determine reason for failure
       const closestAmount = amounts.length > 0 ? amounts.reduce((prev, curr) =>
-        Math.abs(curr - EXPECTED_AMOUNT) < Math.abs(prev - EXPECTED_AMOUNT) ? curr : prev
+        Math.abs(curr - paymentAmount) < Math.abs(prev - paymentAmount) ? curr : prev
       ) : null
       const amountTooHigh = closestAmount && closestAmount > maxAmount
       const amountTooLow = closestAmount && closestAmount < minAmount
@@ -297,7 +296,7 @@ export default function PaymentModal({ groupId, memberDocId, currentStatus, onUp
                               </div>
                               <div className="text-gray-400 text-xs">
                                 {scanResult.amount
-                                  ? `Detectado: $${scanResult.amount.toLocaleString('es-CO')} — Esperado: $${EXPECTED_AMOUNT.toLocaleString('es-CO')}`
+                                  ? `Detectado: $${scanResult.amount.toLocaleString('es-CO')} — Esperado: $${paymentAmount.toLocaleString('es-CO')}`
                                   : 'No se detectó un monto válido'}
                               </div>
                             </div>

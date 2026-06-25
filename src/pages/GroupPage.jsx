@@ -26,6 +26,48 @@ const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6
 const FINAL_PRED_DEADLINE = new Date('2026-06-28T05:00:00Z')
 const THIRD_PLACE_PRED_DEADLINE = FINAL_PRED_DEADLINE
 
+function AdminPaymentAmountEditor({ amount, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(amount)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    const num = parseInt(value, 10)
+    if (!num || num < 1000) return
+    setSaving(true)
+    await onSave(num)
+    setSaving(false)
+    setEditing(false)
+  }
+
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 mb-4">
+      <div className="flex items-center justify-between">
+        <span className="text-gray-400 text-sm">Monto de inscripción</span>
+        {!editing ? (
+          <div className="flex items-center gap-3">
+            <span className="text-white font-bold">${amount.toLocaleString('es-CO')} COP</span>
+            <button onClick={() => { setValue(amount); setEditing(true) }} className="text-xs text-wc-gold hover:text-yellow-300">Editar</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              className="w-28 bg-gray-800 text-white text-sm rounded-lg px-2 py-1 border border-gray-600 focus:border-wc-gold focus:outline-none"
+            />
+            <button onClick={handleSave} disabled={saving} className="text-xs bg-wc-gold text-wc-dark font-bold px-3 py-1 rounded-lg disabled:opacity-50">
+              {saving ? '...' : 'Guardar'}
+            </button>
+            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-white">Cancelar</button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function GroupPage() {
   const { groupId } = useParams()
   const { user, isAdmin, handlePermissionError } = useAuth()
@@ -294,8 +336,8 @@ export default function GroupPage() {
         const teamsOk = actualTeams.size === 2 && predTeams.size === 2 && [...predTeams].every(t => actualTeams.has(t))
         const actualWinner = result.team1Goals > result.team2Goals ? result.team1
           : result.team2Goals > result.team1Goals ? result.team2 : null
-        const resultOk = actualWinner && pred.winner === actualWinner
-        return (teamsOk ? 3 : 0) + (resultOk ? 3 : 0)
+        const resultOk = Boolean(actualWinner && pred.winner === actualWinner)
+        return (teamsOk ? 3 : 0) + (resultOk ? 2 : 0)
       }
 
       finalistBonus += extraBonus(matchResults['FINAL'], finalPredictions[member.uid])
@@ -397,6 +439,11 @@ export default function GroupPage() {
     setTopScorerPredictions(prev => ({ ...prev, [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } } }))
   }
 
+  async function updatePaymentAmount(newAmount) {
+    await updateDoc(doc(db, 'groups', groupId), { paymentAmount: newAmount })
+    setGroup(prev => ({ ...prev, paymentAmount: newAmount }))
+  }
+
   const copyInviteCode = () => {
     if (!group) return
     navigator.clipboard.writeText(group.inviteCode)
@@ -417,6 +464,8 @@ export default function GroupPage() {
   const isGroupAdmin = group?.adminIds?.includes(user.uid)
   const isGroupPaid = group?.isPaid !== false
   const isPaymentConfirmed = !isGroupPaid || myPaymentStatus === 'confirmed' || isGroupAdmin
+  const paymentAmount = group?.paymentAmount || 30000
+  const extrasPaymentBlocked = isGroupPaid && !isPaymentConfirmed
 
   // Helper: miembro oculto (admin del grupo o perfil de prueba)
   const isHiddenMember = (m) => {
@@ -569,16 +618,14 @@ export default function GroupPage() {
           >
             📊 Tabla
           </button>
-          {isAdmin && (
-            <button
-              onClick={() => setActiveTab('final')}
-              className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'final' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
-              }`}
-            >
-              ⭐ Puntos extra
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('final')}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === 'final' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            ⭐ Puntos extra
+          </button>
           {isGroupPaid && isAdmin && (
             <button
               onClick={() => setActiveTab('payments')}
@@ -830,6 +877,8 @@ export default function GroupPage() {
                   finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
                   label1="Finalista 1"
                   label2="Finalista 2"
+                  paymentBlocked={extrasPaymentBlocked}
+                  onPaymentRequired={() => setShowPaymentModal(true)}
                 />
               )}
             </div>
@@ -855,6 +904,8 @@ export default function GroupPage() {
                   finalResult={thirdPlaceResult}
                   label1="Equipo 1"
                   label2="Equipo 2"
+                  paymentBlocked={extrasPaymentBlocked}
+                  onPaymentRequired={() => setShowPaymentModal(true)}
                 />
               )}
             </div>
@@ -878,6 +929,8 @@ export default function GroupPage() {
                   visibleMembers={visibleMembers}
                   currentUserId={user.uid}
                   topScorerResult={null}
+                  paymentBlocked={extrasPaymentBlocked}
+                  onPaymentRequired={() => setShowPaymentModal(true)}
                 />
               )}
             </div>
@@ -996,6 +1049,9 @@ export default function GroupPage() {
                 {visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length}/{visibleMembers.length} habilitados
               </span>
             </div>
+            {/* Monto configurable */}
+            <AdminPaymentAmountEditor amount={paymentAmount} onSave={updatePaymentAmount} />
+
             <div className="space-y-2">
               {[...visibleMembers].sort((a, b) => {
                 const order = { uploaded: 0, pending: 1, rejected: 2, confirmed: 3 }
@@ -1129,6 +1185,7 @@ export default function GroupPage() {
           groupName={group?.name}
           adminIds={group?.adminIds || []}
           memberName={user?.displayName}
+          paymentAmount={paymentAmount}
           onUploadComplete={() => {
             setShowPaymentModal(false)
             loadMembers()
