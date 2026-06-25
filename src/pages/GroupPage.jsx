@@ -856,6 +856,26 @@ export default function GroupPage() {
               <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} label="Cierra 28 jun · 12:00 AM" />
             )}
 
+            {/* Bloque de pago para usuarios sin confirmar */}
+            {extrasPaymentBlocked && (
+              <div className="bg-yellow-900/20 border border-yellow-700 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-yellow-300 font-bold text-sm">Pago pendiente</div>
+                    <p className="text-gray-400 text-xs mt-0.5">
+                      Confirma tu inscripción para habilitar las predicciones
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="flex-shrink-0 px-4 py-2 rounded-lg bg-wc-gold text-wc-dark font-bold text-xs hover:bg-yellow-400 transition-colors"
+                  >
+                    💳 Pagar
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* La final */}
             <div className="mb-3">
               <button
@@ -863,6 +883,7 @@ export default function GroupPage() {
                 className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
               >
                 🏟️ La final
+                <span className="text-gray-500 text-xs italic font-normal">+5 pts</span>
                 <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.finalPred ? 'rotate-90' : ''}`}>▶</span>
               </button>
               {expandedSections.finalPred && (
@@ -890,6 +911,7 @@ export default function GroupPage() {
                 className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
               >
                 🥉 Tercer puesto
+                <span className="text-gray-500 text-xs italic font-normal">+5 pts</span>
                 <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.thirdPlace ? 'rotate-90' : ''}`}>▶</span>
               </button>
               {expandedSections.thirdPlace && (
@@ -917,6 +939,7 @@ export default function GroupPage() {
                 className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
               >
                 ⚽ Goleador del mundial
+                <span className="text-gray-500 text-xs italic font-normal">+3 pts</span>
                 <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.topScorer ? 'rotate-90' : ''}`}>▶</span>
               </button>
               {expandedSections.topScorer && (
