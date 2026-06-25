@@ -856,25 +856,63 @@ export default function GroupPage() {
               <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} label="Cierra 28 jun · 12:00 AM" />
             )}
 
-            {/* Bloque de pago para usuarios sin confirmar */}
-            {extrasPaymentBlocked && (
-              <div className="bg-yellow-900/20 border border-yellow-700 rounded-xl p-4 mb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-yellow-300 font-bold text-sm">Pago pendiente</div>
-                    <p className="text-gray-400 text-xs mt-0.5">
-                      Confirma tu inscripción para habilitar las predicciones
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="flex-shrink-0 px-4 py-2 rounded-lg bg-wc-gold text-wc-dark font-bold text-xs hover:bg-yellow-400 transition-colors"
-                  >
-                    💳 Pagar
-                  </button>
-                </div>
-              </div>
+            {/* Admin: editor de monto */}
+            {isGroupAdmin && (
+              <AdminPaymentAmountEditor amount={paymentAmount} onSave={updatePaymentAmount} />
             )}
+
+            {/* No-admin: estado de pago */}
+            {!isGroupAdmin && isGroupPaid && myMembership && (() => {
+              const statusMap = {
+                confirmed: {
+                  bg: 'bg-green-900/20 border-green-700',
+                  label: '✅ Pago confirmado',
+                  desc: 'Ya puedes realizar tus predicciones',
+                  labelColor: 'text-green-300',
+                  btn: null,
+                },
+                uploaded: {
+                  bg: 'bg-blue-900/20 border-blue-700',
+                  label: 'Comprobante en revisión',
+                  desc: 'El admin está verificando tu comprobante',
+                  labelColor: 'text-blue-300',
+                  btn: { text: 'Ver estado', style: 'bg-blue-700 text-white hover:bg-blue-600' },
+                },
+                rejected: {
+                  bg: 'bg-red-900/20 border-red-700',
+                  label: 'Comprobante rechazado',
+                  desc: 'Tu comprobante fue rechazado. Sube uno nuevo.',
+                  labelColor: 'text-red-300',
+                  btn: { text: '↑ Resubir', style: 'bg-wc-gold text-wc-dark hover:bg-yellow-400' },
+                },
+                pending: {
+                  bg: 'bg-yellow-900/20 border-yellow-700',
+                  label: 'Pago pendiente',
+                  desc: 'Confirma tu inscripción para habilitar las predicciones',
+                  labelColor: 'text-yellow-300',
+                  btn: { text: '💳 Pagar', style: 'bg-wc-gold text-wc-dark hover:bg-yellow-400' },
+                },
+              }
+              const cfg = statusMap[myPaymentStatus] || statusMap.pending
+              return (
+                <div className={`border rounded-xl p-4 mb-4 ${cfg.bg}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className={`font-bold text-sm ${cfg.labelColor}`}>{cfg.label}</div>
+                      <p className="text-gray-400 text-xs mt-0.5">{cfg.desc}</p>
+                    </div>
+                    {cfg.btn && (
+                      <button
+                        onClick={() => setShowPaymentModal(true)}
+                        className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-xs transition-colors ${cfg.btn.style}`}
+                      >
+                        {cfg.btn.text}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* La final */}
             <div className="mb-3">
