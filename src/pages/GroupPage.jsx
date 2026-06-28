@@ -129,7 +129,14 @@ export default function GroupPage() {
   const [loading, setLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState(null)
   const [activeTab, setActiveTab] = useState('matches')
-  const [activeStage, setActiveStage] = useState('group')
+  const [activeStage, setActiveStage] = useState(() => {
+    const order = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
+    for (const stage of order) {
+      const stageMatches = MATCHES.filter(m => m.stage === stage)
+      if (stageMatches.length > 0 && stageMatches.some(m => !hasMatchStarted(m))) return stage
+    }
+    return 'final'
+  })
   const [activeGroup, setActiveGroup] = useState('all')
   const [inviteCopied, setInviteCopied] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)

@@ -176,9 +176,9 @@ export const MATCHES = [
   { id: 'R32_02', matchNum: 74, stage: 'r32', team1: 'Alemania', team2: 'Paraguay', date: '2026-06-29T15:30:00-05:00', venue: 'Gillette Stadium', city: 'Foxborough' },
   { id: 'R32_03', matchNum: 75, stage: 'r32', team1: 'Países Bajos', team2: 'Marruecos', date: '2026-06-29T20:00:00-05:00', venue: 'Estadio BBVA', city: 'Monterrey' },
   { id: 'R32_04', matchNum: 76, stage: 'r32', team1: 'Brasil', team2: 'Japón', date: '2026-06-29T12:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
-  // Martes 30 de junio — hora Colombia: Costa de Marfil 12h · Francia 16h · México 20h
-  { id: 'R32_05', matchNum: 77, stage: 'r32', team1: 'Francia', team2: 'Suecia', date: '2026-06-30T16:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
-  { id: 'R32_06', matchNum: 78, stage: 'r32', team1: 'Costa de Marfil', team2: 'Noruega', date: '2026-06-30T12:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
+  // Martes 30 de junio — hora Colombia: Francia 12h · Costa de Marfil 16h · México 20h
+  { id: 'R32_05', matchNum: 77, stage: 'r32', team1: 'Francia', team2: 'Suecia', date: '2026-06-30T12:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
+  { id: 'R32_06', matchNum: 78, stage: 'r32', team1: 'Costa de Marfil', team2: 'Noruega', date: '2026-06-30T16:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
   { id: 'R32_07', matchNum: 79, stage: 'r32', team1: 'México', team2: 'Ecuador', date: '2026-06-30T20:00:00-05:00', venue: 'Estadio Azteca', city: 'Ciudad de México' },
   // Miércoles 1 de julio — hora Colombia: Inglaterra 11h · Bélgica 15h · Estados Unidos 19h
   { id: 'R32_08', matchNum: 80, stage: 'r32', team1: 'Inglaterra', team2: 'Rep. Dem. Congo', date: '2026-07-01T11:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
