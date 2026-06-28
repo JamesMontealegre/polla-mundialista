@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
+import { getMessaging, isSupported } from 'firebase/messaging'
 
 // ⚠️  REEMPLAZA CON TU CONFIGURACIÓN DE FIREBASE
 // Ve a: https://console.firebase.google.com → Tu proyecto → Configuración → Web App
@@ -17,3 +18,14 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const googleProvider = new GoogleAuthProvider()
+
+// Firebase Cloud Messaging — inicializacion lazy, solo si el browser lo soporta
+let messagingInstance = null
+export async function getMessagingInstance() {
+  if (messagingInstance) return messagingInstance
+  const supported = await isSupported()
+  if (supported) {
+    messagingInstance = getMessaging(app)
+  }
+  return messagingInstance
+}

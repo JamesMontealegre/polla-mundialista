@@ -31,6 +31,29 @@ export default function GameRules({ isPaid = true }) {
           que elegiste como ganador efectivamente gana, sumas +1 punto. Tu pronóstico
           se contabiliza como resultado acertado, no como marcador exacto.
         </p>
+        <div className="mt-3 space-y-1.5 text-sm">
+          <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-1">Columnas de la tabla</p>
+          <div className="flex items-start gap-2">
+            <span className="text-white font-bold font-mono w-8 shrink-0">PG</span>
+            <span className="text-gray-300">Partidos ganados — número de veces que acertaste el ganador o el empate.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-green-400 font-bold font-mono w-8 shrink-0">PE</span>
+            <span className="text-gray-300">Partidos exactos — veces que acertaste el marcador exacto (+3 pts cada uno).</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-red-400 font-bold font-mono w-8 shrink-0">NP</span>
+            <span className="text-gray-300">No participación — partidos terminados en los que no dejaste ningún pronóstico.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-blue-400 font-bold font-mono w-8 shrink-0">AN</span>
+            <span className="text-gray-300">Anticipación — veces que fuiste el primero en acertar el resultado de un partido (+1 pt cada vez).</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-wc-gold font-bold font-mono w-8 shrink-0">P</span>
+            <span className="text-gray-300">Puntos totales acumulados en la polla.</span>
+          </div>
+        </div>
       </div>
 
       <div className="border-t border-gray-700" />
@@ -91,7 +114,7 @@ export default function GameRules({ isPaid = true }) {
           <span className="text-blue-400 font-semibold"> +1 punto de anticipación</span>.
           Solo una persona por partido puede obtener este punto. Si nadie acierta,
           el punto no se otorga. La anticipación se refleja en la pestaña
-          «Así vamos» y sirve como criterio de desempate.
+          «Tabla» y sirve como criterio de desempate.
         </p>
       </div>
 
@@ -114,28 +137,36 @@ export default function GameRules({ isPaid = true }) {
 
       <div className="border-t border-gray-700" />
 
-      {/* Predicción de la final */}
+      {/* Puntos extra */}
       <div>
-        <div className="text-wc-gold font-bold text-sm mb-2">
-          Predicción de la final
+        <div className="text-wc-gold font-bold text-sm mb-3">
+          Puntos extra
         </div>
-        <div className="text-sm text-gray-300 space-y-1.5">
-          <p>
-            En la pestaña <span className="text-white font-semibold">«La Final»</span> puedes
-            seleccionar los dos equipos que crees que llegarán a la final del Mundial.
-            Si aciertas ambos finalistas, sumarás puntos bonus al final de la polla.
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="text-purple-400 font-bold font-mono w-16 text-right shrink-0">
-              +15 pts
-            </span>
-            <span>Acertar los dos finalistas (sin importar el orden)</span>
+        <div className="space-y-3">
+          {/* Subtítulo: Predicción de la final */}
+          <div>
+            <div className="text-white font-semibold text-sm mb-1.5">
+              Predicción de la final
+            </div>
+            <div className="text-sm text-gray-300 space-y-1.5">
+              <p>
+                En la pestaña <span className="text-white font-semibold">«Puntos extra»</span> puedes
+                seleccionar los dos equipos que crees que llegarán a la final del Mundial.
+                Si aciertas ambos finalistas, sumarás puntos bonus al final de la polla.
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-purple-400 font-bold font-mono w-16 text-right shrink-0">
+                  +15 pts
+                </span>
+                <span>Acertar los dos finalistas (sin importar el orden)</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                La participación es opcional. Las predicciones de finalistas se cierran el
+                28 de junio a las 12:00 AM y se revelan al iniciar los dieciseisavos de final.
+                Este bonus es independiente del pronóstico regular del partido final.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            La participación es opcional. Las predicciones de finalistas se cierran el
-            28 de junio a las 12:00 AM y se revelan al iniciar los diez y seis avos de final.
-            Este bonus es independiente del pronóstico regular del partido final.
-          </p>
         </div>
       </div>
 

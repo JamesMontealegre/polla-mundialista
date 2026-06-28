@@ -1,4 +1,4 @@
-export default function StatsTable({ scores, currentUserId }) {
+export default function StatsTable({ scores, currentUserId, isPaid = true }) {
   if (!scores || scores.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -14,7 +14,9 @@ export default function StatsTable({ scores, currentUserId }) {
     if (b.correctWinners !== a.correctWinners) return b.correctWinners - a.correctWinners
     if ((a.noParticipation ?? 0) !== (b.noParticipation ?? 0)) return (a.noParticipation ?? 0) - (b.noParticipation ?? 0)
     if ((b.anticipation ?? 0) !== (a.anticipation ?? 0)) return (b.anticipation ?? 0) - (a.anticipation ?? 0)
-    return (b.avgAnticipationHours ?? 0) - (a.avgAnticipationHours ?? 0)
+    if ((b.avgAnticipationHours ?? 0) !== (a.avgAnticipationHours ?? 0)) return (b.avgAnticipationHours ?? 0) - (a.avgAnticipationHours ?? 0)
+    const paid = (x) => x.paymentStatus === 'confirmed' ? 0 : 1
+    return paid(a) - paid(b)
   })
 
   const showFinalist = scores.some(s => s.finalistBonus != null && s.finalistBonus > 0)
@@ -65,7 +67,11 @@ export default function StatsTable({ scores, currentUserId }) {
                 key={entry.uid}
                 className={`border-t border-gray-700/50 ${rowBg}`}
               >
-                <td className="py-2 px-1 text-center font-mono text-xs">
+                <td className={`py-2 px-1 text-center font-mono text-xs border-l-4 ${
+                  isPaid && entry.paymentStatus !== 'confirmed'
+                    ? 'border-red-500'
+                    : 'border-transparent'
+                }`}>
                   {medalEmoji[idx] || <span className="text-gray-500">{idx + 1}</span>}
                 </td>
                 <td className="py-2 px-2 overflow-hidden">

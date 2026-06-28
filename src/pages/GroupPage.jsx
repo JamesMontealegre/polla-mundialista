@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, serverTimestamp
+  doc, getDoc, collection, query, where, getDocs, setDoc, addDoc, deleteDoc, updateDoc, serverTimestamp, onSnapshot
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
-import { MATCHES, STAGE_NAMES, FLAGS, hasMatchStarted, getActiveDateMatches } from '../data/matches'
+import { MATCHES, STAGE_NAMES, FLAGS, ALL_TEAMS, hasMatchStarted, getActiveDateMatches } from '../data/matches'
 import { calculatePoints } from '../utils/scoring'
 import MatchCard from '../components/MatchCard'
 import PredictionModal from '../components/PredictionModal'
@@ -15,6 +15,8 @@ import GameRules from '../components/GameRules'
 import StatsTable from '../components/StatsTable'
 import MemberMatchBadges from '../components/MemberMatchBadges'
 import FinalPredictionCard from '../components/FinalPredictionCard'
+import CountdownBanner from '../components/CountdownBanner'
+import TopScorerPredictionCard from '../components/TopScorerPredictionCard'
 import { HIDDEN_EMAILS } from '../config/hiddenUsers'
 
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
@@ -22,6 +24,93 @@ const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6
 
 // Deadline: 28 jun 2026 00:00 Colombia (UTC-5) = 28 jun 05:00 UTC
 const FINAL_PRED_DEADLINE = new Date('2026-06-28T05:00:00Z')
+const THIRD_PLACE_PRED_DEADLINE = FINAL_PRED_DEADLINE
+
+function AdminPaymentAmountEditor({ amount, onSave, label = 'Monto de inscripción' }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(amount)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    const num = parseInt(value, 10)
+    if (!num || num < 1000) return
+    setSaving(true)
+    await onSave(num)
+    setSaving(false)
+    setEditing(false)
+  }
+
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 mb-4">
+      <div className="flex items-center justify-between">
+        <span className="text-gray-400 text-sm">{label}</span>
+        {!editing ? (
+          <div className="flex items-center gap-3">
+            <span className="text-white font-bold">${amount.toLocaleString('es-CO')} COP</span>
+            <button onClick={() => { setValue(amount); setEditing(true) }} className="text-xs text-wc-gold hover:text-yellow-300">Editar</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              className="w-28 bg-gray-800 text-white text-sm rounded-lg px-2 py-1 border border-gray-600 focus:border-wc-gold focus:outline-none"
+            />
+            <button onClick={handleSave} disabled={saving} className="text-xs bg-wc-gold text-wc-dark font-bold px-3 py-1 rounded-lg disabled:opacity-50">
+              {saving ? '...' : 'Guardar'}
+            </button>
+            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-white">Cancelar</button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AdminTopScorerResult({ current, onSave }) {
+  const [team, setTeam] = useState(current?.team || '')
+  const [jersey, setJersey] = useState(current?.jerseyNumber || '')
+  const [goals, setGoals] = useState(current?.goals || '')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!team || !jersey || !goals || saving) return
+    setSaving(true)
+    await onSave(team, jersey, goals)
+    setSaving(false)
+  }
+
+  return (
+    <div className="mt-3 bg-gray-900 border border-dashed border-gray-600 rounded-xl p-4">
+      <div className="text-gray-400 text-xs font-semibold mb-2">Admin · Registrar resultado del goleador</div>
+      <div className="space-y-2">
+        <select value={team} onChange={e => setTeam(e.target.value)} className="w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none">
+          <option value="">Seleccionar seleccionado...</option>
+          {ALL_TEAMS.map(t => <option key={t} value={t}>{FLAGS[t] || '🏳️'} {t}</option>)}
+        </select>
+        <div className="flex gap-2">
+          <select value={jersey} onChange={e => setJersey(e.target.value)} className="flex-1 bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none">
+            <option value="">Camiseta...</option>
+            {Array.from({ length: 99 }, (_, i) => i + 1).map(n => <option key={n} value={n}>#{n}</option>)}
+          </select>
+          <select value={goals} onChange={e => setGoals(e.target.value)} className="flex-1 bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-wc-gold focus:outline-none">
+            <option value="">Goles...</option>
+            {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} gol{n > 1 ? 'es' : ''}</option>)}
+          </select>
+        </div>
+        <button onClick={handleSave} disabled={!team || !jersey || !goals || saving} className="w-full py-2 rounded-lg bg-wc-gold text-wc-dark font-bold text-sm disabled:opacity-50 hover:bg-yellow-400 transition-colors">
+          {saving ? 'Guardando...' : current ? 'Actualizar resultado' : 'Guardar resultado'}
+        </button>
+      </div>
+      {current && (
+        <p className="text-gray-500 text-xs mt-2 text-center">
+          Resultado actual: {FLAGS[current.team]} {current.team} · #{current.jerseyNumber} · {current.goals} goles
+        </p>
+      )}
+    </div>
+  )
+}
 
 export default function GroupPage() {
   const { groupId } = useParams()
@@ -34,6 +123,8 @@ export default function GroupPage() {
   const [predictions, setPredictions] = useState({}) // matchId → prediction (mis predicciones)
   const [allPredictions, setAllPredictions] = useState({}) // uid → { matchId → prediction }
   const [finalPredictions, setFinalPredictions] = useState({}) // uid → { finalTeam1, finalTeam2, updatedAt }
+  const [thirdPlacePredictions, setThirdPlacePredictions] = useState({}) // uid → { finalTeam1, finalTeam2, winner, updatedAt }
+  const [topScorerPredictions, setTopScorerPredictions] = useState({}) // uid → { team, jerseyNumber, goals }
   const [scores, setScores] = useState([]) // [{uid, displayName, totalPoints, ...}]
   const [loading, setLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState(null)
@@ -151,10 +242,20 @@ export default function GroupPage() {
     const all = {}
     const mine = {}
     const finals = {}
+    const thirds = {}
+    const topScorers = {}
     snap.docs.forEach(d => {
       const data = d.data()
       if (data.matchId === 'FINALISTS') {
         finals[data.uid] = data
+        return
+      }
+      if (data.matchId === 'THIRD_PLACE') {
+        thirds[data.uid] = data
+        return
+      }
+      if (data.matchId === 'TOP_SCORER') {
+        topScorers[data.uid] = data
         return
       }
       if (!all[data.uid]) all[data.uid] = {}
@@ -164,21 +265,28 @@ export default function GroupPage() {
     setAllPredictions(all)
     setPredictions(mine)
     setFinalPredictions(finals)
+    setThirdPlacePredictions(thirds)
+    setTopScorerPredictions(topScorers)
   }
 
-  // Polling: refrescar resultados cada 60s si hay partidos en curso
+  // Listener en tiempo real: escuchar cambios en resultados cuando hay partidos en curso
   const hasLiveMatches = MATCHES.some(m => matchResults[m.id]?.isLive)
   useEffect(() => {
     if (!hasLiveMatches) return
-    const id = setInterval(() => loadMatchResults(true), 60_000)
-    return () => clearInterval(id)
+    const unsub = onSnapshot(collection(db, 'matches'), (snap) => {
+      const results = {}
+      snap.docs.forEach(d => { results[d.id] = d.data() })
+      setMatchResults(results)
+      sessionStorage.setItem('matchResults', JSON.stringify({ data: results, ts: Date.now() }))
+    })
+    return () => unsub()
   }, [hasLiveMatches])
 
   // Recalcular scores cuando cambian los datos en memoria (sin Firestore)
   useEffect(() => {
     if (members.length === 0 || Object.keys(matchResults).length === 0) return
     computeScores()
-  }, [members, matchResults, allPredictions, finalPredictions])
+  }, [members, matchResults, allPredictions, finalPredictions, thirdPlacePredictions, topScorerPredictions, group])
 
   function computeScores() {
     // UIDs ocultos (admins + perfiles de prueba)
@@ -262,17 +370,37 @@ export default function GroupPage() {
 
       const anticipation = Object.values(anticipationWinners).filter(uid => uid === member.uid).length
 
-      // Bonus +15 por acertar finalistas
+      // Puntos extra — solo se suman cuando el admin los revela
       let finalistBonus = 0
-      const finalMatch = matchResults['FINAL']
-      if (finalMatch?.isFinished) {
-        const fp = finalPredictions[member.uid]
-        if (fp) {
-          const actualTeams = new Set([finalMatch.team1, finalMatch.team2])
-          const predTeams = new Set([fp.finalTeam1, fp.finalTeam2])
-          if (actualTeams.size === 2 && [...predTeams].every(t => actualTeams.has(t))) {
-            finalistBonus = 15
-          }
+      const extrasAreRevealed = group?.extrasRevealed === true
+
+      if (extrasAreRevealed) {
+        function extraBonus(result, pred) {
+          if (!result?.isFinished || !pred) return 0
+          const actualTeams = new Set([result.team1, result.team2])
+          const predTeams = new Set([pred.finalTeam1, pred.finalTeam2])
+          const teamsOk = actualTeams.size === 2 && predTeams.size === 2 && [...predTeams].every(t => actualTeams.has(t))
+          const actualWinner = result.team1Goals > result.team2Goals ? result.team1
+            : result.team2Goals > result.team1Goals ? result.team2 : null
+          const resultOk = Boolean(actualWinner && pred.winner === actualWinner)
+          return (teamsOk ? 3 : 0) + (resultOk ? 2 : 0)
+        }
+
+        finalistBonus += extraBonus(matchResults['FINAL'], finalPredictions[member.uid])
+
+        const thirdPlaceMatchId = MATCHES.find(m => m.stage === '3rd')?.id
+        if (thirdPlaceMatchId) {
+          finalistBonus += extraBonus(matchResults[thirdPlaceMatchId], thirdPlacePredictions[member.uid])
+        }
+
+        // Goleador: goles=3pts, seleccionado=1pt, camiseta=1pt (max 5)
+        const tsResult = group?.topScorerResult
+        const tsPred = topScorerPredictions[member.uid]
+        if (tsResult && tsPred) {
+          const goalsOk = String(tsPred.goals) === String(tsResult.goals)
+          const teamOk = tsPred.team === tsResult.team
+          const jerseyOk = String(tsPred.jerseyNumber) === String(tsResult.jerseyNumber)
+          finalistBonus += (goalsOk ? 3 : 0) + (teamOk ? 1 : 0) + (jerseyOk ? 1 : 0)
         }
       }
 
@@ -347,21 +475,77 @@ export default function GroupPage() {
     }
   }
 
-  async function saveFinalPrediction(finalTeam1, finalTeam2) {
+  async function saveFinalPrediction(finalTeam1, finalTeam2, winner) {
     const predId = `${groupId}_FINALISTS_${user.uid}`
-    const predDoc = {
-      groupId,
-      matchId: 'FINALISTS',
-      uid: user.uid,
-      finalTeam1,
-      finalTeam2,
-      updatedAt: serverTimestamp(),
-    }
+    const predDoc = { groupId, matchId: 'FINALISTS', uid: user.uid, finalTeam1, finalTeam2, winner, updatedAt: serverTimestamp() }
     await setDoc(doc(db, 'predictions', predId), predDoc)
-    setFinalPredictions(prev => ({
-      ...prev,
-      [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } }
-    }))
+    setFinalPredictions(prev => ({ ...prev, [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } } }))
+  }
+
+  async function saveThirdPlacePrediction(finalTeam1, finalTeam2, winner) {
+    const predId = `${groupId}_THIRD_PLACE_${user.uid}`
+    const predDoc = { groupId, matchId: 'THIRD_PLACE', uid: user.uid, finalTeam1, finalTeam2, winner, updatedAt: serverTimestamp() }
+    await setDoc(doc(db, 'predictions', predId), predDoc)
+    setThirdPlacePredictions(prev => ({ ...prev, [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } } }))
+  }
+
+  async function saveTopScorerPrediction(team, jerseyNumber, goals) {
+    const predId = `${groupId}_TOP_SCORER_${user.uid}`
+    const predDoc = { groupId, matchId: 'TOP_SCORER', uid: user.uid, team, jerseyNumber, goals, updatedAt: serverTimestamp() }
+    await setDoc(doc(db, 'predictions', predId), predDoc)
+    setTopScorerPredictions(prev => ({ ...prev, [user.uid]: { ...predDoc, updatedAt: { seconds: Math.floor(Date.now() / 1000) } } }))
+  }
+
+  async function updatePaymentAmount(newAmount) {
+    await updateDoc(doc(db, 'groups', groupId), { paymentAmount: newAmount })
+    setGroup(prev => ({ ...prev, paymentAmount: newAmount }))
+  }
+
+  async function updateExtraPaymentAmount(newAmount) {
+    await updateDoc(doc(db, 'groups', groupId), { extraPaymentAmount: newAmount })
+    setGroup(prev => ({ ...prev, extraPaymentAmount: newAmount }))
+  }
+
+  async function updateExtraPaymentStatus(member, newStatus) {
+    try {
+      await updateDoc(doc(db, 'groupMembers', member.docId), {
+        extraPaymentStatus: newStatus,
+        extraPaymentReviewedAt: new Date().toISOString(),
+        extraPaymentReviewedBy: user.uid,
+      })
+      setMembers(prev => prev.map(m =>
+        m.docId === member.docId ? { ...m, extraPaymentStatus: newStatus } : m
+      ))
+    } catch (err) {
+      console.error('Error actualizando pago extra:', err)
+      if (err?.code === 'permission-denied' || err?.message?.includes('Missing or insufficient permissions')) {
+        handlePermissionError()
+      }
+    }
+  }
+
+  async function setTopScorerResult(team, jerseyNumber, goals) {
+    const result = { team, jerseyNumber, goals }
+    await updateDoc(doc(db, 'groups', groupId), { topScorerResult: result })
+    setGroup(prev => ({ ...prev, topScorerResult: result }))
+  }
+
+  async function revealExtraPoints() {
+    if (!confirm('¿Revelar los puntos extra y notificar a todos los jugadores? Esta acción no se puede deshacer.')) return
+    await updateDoc(doc(db, 'groups', groupId), { extrasRevealed: true })
+    setGroup(prev => ({ ...prev, extrasRevealed: true }))
+    await Promise.all(
+      visibleMembers.map(m =>
+        addDoc(collection(db, 'userNotifications'), {
+          userId: m.uid,
+          title: group?.name || 'Polla mundialista',
+          message: '⭐ Los puntos extra han sido revelados · ¡Revisa tu puntaje!',
+          type: 'extra_reveal',
+          read: false,
+          createdAt: serverTimestamp(),
+        })
+      )
+    )
   }
 
   const copyInviteCode = () => {
@@ -381,9 +565,13 @@ export default function GroupPage() {
   // Membership y estado de pago del usuario actual
   const myMembership = members.find(m => m.uid === user.uid)
   const myPaymentStatus = myMembership?.paymentStatus || 'pending'
+  const myExtraPaymentStatus = myMembership?.extraPaymentStatus || 'pending'
   const isGroupAdmin = group?.adminIds?.includes(user.uid)
   const isGroupPaid = group?.isPaid !== false
   const isPaymentConfirmed = !isGroupPaid || myPaymentStatus === 'confirmed' || isGroupAdmin
+  const paymentAmount = group?.paymentAmount || 30000
+  const extraPaymentAmount = group?.extraPaymentAmount || 10000
+  const extrasPaymentBlocked = isGroupPaid && !(myExtraPaymentStatus === 'confirmed' || isGroupAdmin)
 
   // Helper: miembro oculto (admin del grupo o perfil de prueba)
   const isHiddenMember = (m) => {
@@ -423,9 +611,18 @@ export default function GroupPage() {
 
   // La Final: deadline y revelacion
   const isFinalistLocked = Date.now() >= FINAL_PRED_DEADLINE.getTime()
+  const isThirdPlaceLocked = isFinalistLocked
+  const isThirdPlaceRevealed = MATCHES.some(m => m.stage === 'sf' && hasMatchStarted(m))
+  const isTopScorerRevealed = isThirdPlaceRevealed
+  const thirdPlaceMatch = MATCHES.find(m => m.stage === '3rd')
+  const thirdPlaceResult = thirdPlaceMatch && matchResults[thirdPlaceMatch.id]?.isFinished ? matchResults[thirdPlaceMatch.id] : null
   const isFinalistRevealed = MATCHES.some(m => m.stage === 'qf' && hasMatchStarted(m))
   // Revelar predicciones en pestaña Grupo: 28 jun 13:00 COL = 28 jun 18:00 UTC
   const isFinalistVisibleInGroup = Date.now() >= new Date('2026-06-28T18:00:00Z').getTime()
+  // Puntos extra: revelados manualmente por admin; botón habilitado cuando la final termina
+  const extrasRevealed = group?.extrasRevealed === true
+  const finalIsFinished = matchResults['FINAL']?.isFinished === true
+  const canRevealExtras = finalIsFinished && !extrasRevealed
 
   // Tres categorias de partidos (controlado por el admin)
   const liveMatches = filteredMatches.filter(m => matchResults[m.id]?.isLive)
@@ -434,8 +631,18 @@ export default function GroupPage() {
   const upcomingMatches = filteredMatches.filter(m => !matchResults[m.id]?.isLive && !matchResults[m.id]?.isFinished)
 
   // Estado de secciones colapsables
-  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false })
+  const hasAnyLive = liveMatches.length > 0
+  const [expandedSections, setExpandedSections] = useState({ live: true, upcoming: true, played: false, finalPred: true, thirdPlace: true, topScorer: true })
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
+
+  // Cuando hay partidos en curso, colapsar las otras secciones
+  useEffect(() => {
+    if (hasAnyLive) {
+      setExpandedSections({ live: true, upcoming: false, played: false })
+    } else {
+      setExpandedSections({ live: true, upcoming: true, played: false })
+    }
+  }, [hasAnyLive])
 
   if (loading) {
     return (
@@ -498,12 +705,20 @@ export default function GroupPage() {
             ⚽ Partidos
           </button>
           <button
+            onClick={() => setActiveTab('members')}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === 'members' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            📑 Resultados
+          </button>
+          <button
             onClick={() => setActiveTab('leaderboard')}
             className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'leaderboard' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            🏆 Tabla
+            🏆 Podio
           </button>
           <button
             onClick={() => setActiveTab('stats')}
@@ -511,7 +726,7 @@ export default function GroupPage() {
               activeTab === 'stats' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            📊 Asi vamos
+            📊 Tabla
           </button>
           <button
             onClick={() => setActiveTab('final')}
@@ -519,15 +734,7 @@ export default function GroupPage() {
               activeTab === 'final' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            🏟️ La Final
-          </button>
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === 'members' ? 'border-wc-gold text-wc-gold' : 'border-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            👥 Grupo
+            ⭐ Puntos extra
           </button>
           {isGroupPaid && isAdmin && (
             <button
@@ -574,17 +781,17 @@ export default function GroupPage() {
                 </div>
                 <p className="text-gray-400 text-xs mt-0.5">
                   {myPaymentStatus === 'uploaded'
-                    ? 'El admin esta revisando tu comprobante.'
+                    ? 'El admin está revisando tu comprobante.'
                     : myPaymentStatus === 'rejected'
                     ? 'Tu comprobante fue rechazado. Sube uno nuevo.'
-                    : 'Debes pagar para poder hacer predicciones.'}
+                    : 'Completa tu cuota de participación para pronosticar.'}
                 </p>
               </div>
               <button
                 onClick={() => setShowPaymentModal(true)}
                 className="flex-shrink-0 px-4 py-2 rounded-lg bg-wc-gold text-wc-dark font-bold text-xs"
               >
-                {myPaymentStatus === 'rejected' ? 'Resubir' : myPaymentStatus === 'uploaded' ? 'Ver estado' : 'Pagar'}
+                {myPaymentStatus === 'rejected' ? 'Resubir' : myPaymentStatus === 'uploaded' ? 'Ver estado' : 'Quiero Pronosticar'}
               </button>
             </div>
           </div>
@@ -726,7 +933,7 @@ export default function GroupPage() {
         {activeTab === 'leaderboard' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">🏆 Tabla de Posiciones</h2>
+              <h2 className="text-white font-bold text-lg">🏆 Ranking Ganadores</h2>
               <span className="text-gray-400 text-xs">{visibleMembers.length} participantes</span>
             </div>
             <Leaderboard
@@ -743,35 +950,167 @@ export default function GroupPage() {
         {activeTab === 'stats' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">📊 Asi vamos</h2>
+              <h2 className="text-white font-bold text-lg">📊 Tabla de posiciones</h2>
               <span className="text-gray-400 text-xs">{finishedMatchCount} partidos jugados</span>
             </div>
-            <StatsTable scores={scores} currentUserId={user.uid} />
+            <StatsTable scores={scores} currentUserId={user.uid} isPaid={isGroupPaid} />
           </div>
         )}
 
         {/* FINAL TAB */}
         {activeTab === 'final' && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">🏟️ La Final</h2>
-              {!isFinalistLocked && (
-                <span className="text-gray-400 text-xs">
-                  Cierra 28 jun 12:00 AM
-                </span>
+            <h2 className="text-white font-bold text-lg mb-4">⭐ Puntos extra</h2>
+
+            {!isFinalistLocked && (
+              <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} label="Cierra 28 jun · 12:00 AM" />
+            )}
+
+            {/* No-admin: estado del pago extra (independiente al pago inicial) */}
+            {!isGroupAdmin && isGroupPaid && myMembership && (() => {
+              if (!isPaymentConfirmed) {
+                return (
+                  <div className="bg-gray-800 border border-gray-600 rounded-xl p-4 mb-4">
+                    <div className="text-gray-400 font-bold text-sm">Pago inicial pendiente</div>
+                    <p className="text-gray-500 text-xs mt-0.5">Primero confirma tu pago de la polla para acceder a los puntos extra</p>
+                  </div>
+                )
+              }
+              const statusMap = {
+                confirmed: {
+                  bg: 'bg-green-900/20 border-green-700',
+                  label: '✅ Puntos extra habilitados',
+                  desc: 'Ya puedes realizar tus predicciones de puntos extra',
+                  labelColor: 'text-green-300',
+                },
+                pending: {
+                  bg: 'bg-yellow-900/20 border-yellow-700',
+                  label: `Puntos extra · $${extraPaymentAmount.toLocaleString('es-CO')} COP adicionales`,
+                  desc: 'Realiza el pago y notifica al admin para habilitarte',
+                  labelColor: 'text-yellow-300',
+                },
+              }
+              const cfg = statusMap[myExtraPaymentStatus] || statusMap.pending
+              return (
+                <div className={`border rounded-xl p-4 mb-4 ${cfg.bg}`}>
+                  <div className={`font-bold text-sm ${cfg.labelColor}`}>{cfg.label}</div>
+                  <p className="text-gray-400 text-xs mt-0.5">{cfg.desc}</p>
+                </div>
+              )
+            })()}
+
+            {/* La final */}
+            <div className="mb-3">
+              <button
+                onClick={() => toggleSection('finalPred')}
+                className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+              >
+                🏟️ La final
+                <span className="text-gray-500 text-xs italic font-normal">+5 pts</span>
+                <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.finalPred ? 'rotate-90' : ''}`}>▶</span>
+              </button>
+              {expandedSections.finalPred && (
+                <FinalPredictionCard
+                  prediction={finalPredictions[user.uid]}
+                  onSave={saveFinalPrediction}
+                  isLocked={isFinalistLocked}
+                  isRevealed={isFinalistRevealed}
+                  allFinalPredictions={finalPredictions}
+                  visibleMembers={visibleMembers}
+                  currentUserId={user.uid}
+                  finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
+                  label1="Finalista 1"
+                  label2="Finalista 2"
+                  paymentBlocked={extrasPaymentBlocked}
+                  paymentBlockedMessage="El admin debe habilitarte para los puntos extra"
+                />
               )}
             </div>
-            <FinalPredictionCard
-              prediction={finalPredictions[user.uid]}
-              onSave={saveFinalPrediction}
-              isLocked={isFinalistLocked}
-              isRevealed={isFinalistRevealed}
-              allFinalPredictions={finalPredictions}
-              visibleMembers={visibleMembers}
-              currentUserId={user.uid}
-              finalResult={matchResults['FINAL']?.isFinished ? matchResults['FINAL'] : null}
-              deadline={FINAL_PRED_DEADLINE.getTime()}
-            />
+
+            {/* Tercer puesto */}
+            <div className="mb-3">
+              <button
+                onClick={() => toggleSection('thirdPlace')}
+                className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+              >
+                🥉 Tercer puesto
+                <span className="text-gray-500 text-xs italic font-normal">+5 pts</span>
+                <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.thirdPlace ? 'rotate-90' : ''}`}>▶</span>
+              </button>
+              {expandedSections.thirdPlace && (
+                <FinalPredictionCard
+                  prediction={thirdPlacePredictions[user.uid]}
+                  onSave={saveThirdPlacePrediction}
+                  isLocked={isThirdPlaceLocked}
+                  isRevealed={isThirdPlaceRevealed}
+                  allFinalPredictions={thirdPlacePredictions}
+                  visibleMembers={visibleMembers}
+                  currentUserId={user.uid}
+                  finalResult={thirdPlaceResult}
+                  label1="Equipo 1"
+                  label2="Equipo 2"
+                  paymentBlocked={extrasPaymentBlocked}
+                  paymentBlockedMessage="El admin debe habilitarte para los puntos extra"
+                />
+              )}
+            </div>
+
+            {/* Goleador del mundial */}
+            <div>
+              <button
+                onClick={() => toggleSection('topScorer')}
+                className="w-full text-left font-bold text-sm mb-3 flex items-center gap-2 text-white"
+              >
+                ⚽ Goleador del mundial
+                <span className="text-gray-500 text-xs italic font-normal">+5 pts</span>
+                <span className={`ml-auto text-gray-500 text-xs transition-transform ${expandedSections.topScorer ? 'rotate-90' : ''}`}>▶</span>
+              </button>
+              {expandedSections.topScorer && (
+                <>
+                  <TopScorerPredictionCard
+                    prediction={topScorerPredictions[user.uid]}
+                    onSave={saveTopScorerPrediction}
+                    isLocked={isFinalistLocked}
+                    isRevealed={isTopScorerRevealed}
+                    allPredictions={topScorerPredictions}
+                    visibleMembers={visibleMembers}
+                    currentUserId={user.uid}
+                    topScorerResult={group?.topScorerResult || null}
+                    paymentBlocked={extrasPaymentBlocked}
+                    paymentBlockedMessage="El admin debe habilitarte para los puntos extra"
+                  />
+                  {isGroupAdmin && (
+                    <AdminTopScorerResult
+                      current={group?.topScorerResult}
+                      onSave={setTopScorerResult}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Admin: botón revelar puntos */}
+            {isGroupAdmin && (
+              <div className="mt-6 bg-gray-900 border border-gray-700 rounded-xl p-4">
+                <div className="text-white font-semibold text-sm mb-1">Revelar puntos extra</div>
+                <p className="text-gray-400 text-xs mb-3">
+                  {extrasRevealed
+                    ? '✅ Los puntos extra ya fueron revelados y sumados al ranking'
+                    : finalIsFinished
+                    ? 'El mundial terminó. Puedes revelar los puntos y notificar a todos los jugadores.'
+                    : 'Este botón se habilita cuando el partido final esté marcado como terminado.'}
+                </p>
+                {!extrasRevealed && (
+                  <button
+                    onClick={revealExtraPoints}
+                    disabled={!canRevealExtras}
+                    className="w-full py-2.5 rounded-lg bg-wc-gold text-wc-dark font-bold text-sm disabled:opacity-40 hover:bg-yellow-400 transition-colors"
+                  >
+                    ⭐ Revelar puntos y notificar
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -779,7 +1118,7 @@ export default function GroupPage() {
         {activeTab === 'members' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">👥 Participantes</h2>
+              <h2 className="text-white font-bold text-lg">📑 Resultados de la fecha</h2>
             </div>
             {activeDateMatches.length > 0 && (
               <div className="text-gray-400 text-xs font-semibold mb-2">
@@ -880,122 +1219,159 @@ export default function GroupPage() {
 
         {/* PAYMENTS TAB (admin only, paid groups only) */}
         {activeTab === 'payments' && isGroupPaid && isAdmin && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">💰 Gestion de Pagos</h2>
-              <span className="text-gray-400 text-xs">
-                {visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length}/{visibleMembers.length} habilitados
-              </span>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-bold text-lg">💰 Gestión de Pagos</h2>
             </div>
-            <div className="space-y-2">
-              {[...visibleMembers].sort((a, b) => {
-                const order = { uploaded: 0, pending: 1, rejected: 2, confirmed: 3 }
-                return (order[a.paymentStatus] ?? 1) - (order[b.paymentStatus] ?? 1)
-              }).map(m => {
-                const pStatus = m.paymentStatus || 'pending'
-                const statusConfig = {
-                  pending: { label: 'Pendiente', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-700' },
-                  uploaded: { label: 'Enviado', color: 'text-blue-400 bg-blue-900/30 border-blue-700' },
-                  confirmed: { label: 'Habilitado', color: 'text-green-400 bg-green-900/30 border-green-700' },
-                  rejected: { label: 'Rechazado', color: 'text-red-400 bg-red-900/30 border-red-700' },
-                }
-                const cfg = statusConfig[pStatus] || statusConfig.pending
 
-                return (
-                  <div key={m.uid} className={`bg-gray-900 rounded-xl border ${pStatus === 'uploaded' ? 'border-blue-700' : 'border-gray-700'} overflow-hidden`}>
-                    {/* Header: user info + status */}
-                    <div className="flex items-center gap-3 p-3">
-                      {m.photoURL ? (
-                        <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
+            {/* ── Sección 1: Pago de la polla ── */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-semibold text-sm">🏆 Pago de la polla</h3>
+                <span className="text-gray-400 text-xs">
+                  {visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length}/{visibleMembers.length} habilitados
+                </span>
+              </div>
+              <AdminPaymentAmountEditor amount={paymentAmount} onSave={updatePaymentAmount} label="Inscripción a la polla" />
+              <div className="space-y-2">
+                {[...visibleMembers].sort((a, b) => {
+                  const order = { uploaded: 0, pending: 1, rejected: 2, confirmed: 3 }
+                  return (order[a.paymentStatus] ?? 1) - (order[b.paymentStatus] ?? 1)
+                }).map(m => {
+                  const pStatus = m.paymentStatus || 'pending'
+                  const statusConfig = {
+                    pending: { label: 'Pendiente', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-700' },
+                    uploaded: { label: 'Enviado', color: 'text-blue-400 bg-blue-900/30 border-blue-700' },
+                    confirmed: { label: 'Habilitado', color: 'text-green-400 bg-green-900/30 border-green-700' },
+                    rejected: { label: 'Rechazado', color: 'text-red-400 bg-red-900/30 border-red-700' },
+                  }
+                  const cfg = statusConfig[pStatus] || statusConfig.pending
+                  return (
+                    <div key={m.uid} className={`bg-gray-900 rounded-xl border ${pStatus === 'uploaded' ? 'border-blue-700' : 'border-gray-700'} overflow-hidden`}>
+                      <div className="flex items-center gap-3 p-3">
+                        {m.photoURL ? (
+                          <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
+                            {m.displayName?.[0]?.toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-semibold text-sm truncate">
+                            {m.displayName}
+                            {m.phoneNumber
+                              ? <span className="text-gray-400 font-normal"> - {m.phoneNumber}</span>
+                              : <span className="text-gray-500 font-normal italic"> - celular no inscrito</span>
+                            }
+                          </div>
+                          <span className={`text-xs px-1.5 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
+                        </div>
+                      </div>
+                      {m.receiptData ? (
+                        <div className="px-3 pb-3">
+                          <div className="bg-gray-800 rounded-lg p-3 space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400 text-xs">Monto verificado</span>
+                              <span className="text-white font-bold text-sm">${m.receiptData.amount?.toLocaleString('es-CO')}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400 text-xs">Destino</span>
+                              <span className="text-white text-xs">
+                                {m.receiptData.destType === 'nequi' ? 'Nequi detectado' : m.receiptData.destType === 'nombre' ? 'Nombre detectado' : '—'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400 text-xs">Fecha envío</span>
+                              <span className="text-white text-xs">
+                                {m.receiptData.submittedAt
+                                  ? new Date(m.receiptData.submittedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                                  : '—'}
+                              </span>
+                            </div>
+                          </div>
+                          {pStatus === 'uploaded' && (
+                            <div className="flex gap-2 mt-2">
+                              <button onClick={() => updatePaymentStatus(m, 'confirmed')} className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors">Confirmar pago</button>
+                              <button onClick={() => updatePaymentStatus(m, 'rejected')} className="flex-1 text-xs py-2 rounded-lg bg-red-900/50 text-red-400 hover:bg-red-900 border border-red-800 font-bold transition-colors">Rechazar</button>
+                            </div>
+                          )}
+                          {pStatus === 'rejected' && (
+                            <div className="flex gap-2 mt-2">
+                              <button onClick={() => updatePaymentStatus(m, 'confirmed')} className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors">Confirmar pago</button>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
-                          {m.displayName?.[0]?.toUpperCase()}
+                        <div className="px-3 pb-3">
+                          <div className="text-gray-500 text-xs italic">No ha enviado comprobante</div>
+                          {pStatus !== 'confirmed' && (
+                            <button onClick={() => updatePaymentStatus(m, 'confirmed')} className="mt-2 text-xs py-1.5 px-3 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors">Confirmar manualmente</button>
+                          )}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-white font-semibold text-sm truncate">
-                          {m.displayName}
-                          {m.phoneNumber
-                            ? <span className="text-gray-400 font-normal"> - {m.phoneNumber}</span>
-                            : <span className="text-gray-500 font-normal italic"> - celular no inscrito</span>
-                          }
-                        </div>
-                        <span className={`text-xs px-1.5 py-0.5 rounded border ${cfg.color}`}>
-                          {cfg.label}
-                        </span>
-                      </div>
                     </div>
+                  )
+                })}
+              </div>
+            </div>
 
-                    {/* Transaction details */}
-                    {m.receiptData ? (
-                      <div className="px-3 pb-3">
-                        <div className="bg-gray-800 rounded-lg p-3 space-y-1.5">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-400 text-xs">Monto verificado</span>
-                            <span className="text-white font-bold text-sm">
-                              ${m.receiptData.amount?.toLocaleString('es-CO')}
-                            </span>
+            {/* ── Sección 2: Puntos extra ── */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-semibold text-sm">⭐ Puntos extra</h3>
+                <span className="text-gray-400 text-xs">
+                  {visibleMembers.filter(m => (m.extraPaymentStatus || 'pending') === 'confirmed').length}/{visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length} habilitados
+                </span>
+              </div>
+              <AdminPaymentAmountEditor amount={extraPaymentAmount} onSave={updateExtraPaymentAmount} label="Puntos extra" />
+              <p className="text-gray-500 text-xs mb-3">Solo aparecen jugadores con pago de polla confirmado</p>
+              <div className="space-y-2">
+                {visibleMembers
+                  .filter(m => (m.paymentStatus || 'pending') === 'confirmed')
+                  .sort((a, b) => {
+                    const order = { pending: 0, confirmed: 1 }
+                    return (order[a.extraPaymentStatus] ?? 0) - (order[b.extraPaymentStatus] ?? 0)
+                  })
+                  .map(m => {
+                    const eStatus = m.extraPaymentStatus || 'pending'
+                    const isExtraConfirmed = eStatus === 'confirmed'
+                    return (
+                      <div key={m.uid} className="bg-gray-900 rounded-xl border border-gray-700 flex items-center gap-3 p-3">
+                        {m.photoURL ? (
+                          <img src={m.photoURL} alt={m.displayName} className="w-10 h-10 rounded-full border border-gray-600" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-wc-green flex items-center justify-center text-white font-bold">
+                            {m.displayName?.[0]?.toUpperCase()}
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-400 text-xs">Destino</span>
-                            <span className="text-white text-xs">
-                              {m.receiptData.destType === 'nequi' ? 'Nequi detectado' : m.receiptData.destType === 'nombre' ? 'Nombre detectado' : '—'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-400 text-xs">Fecha envio</span>
-                            <span className="text-white text-xs">
-                              {m.receiptData.submittedAt
-                                ? new Date(m.receiptData.submittedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                                : '—'}
-                            </span>
-                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-semibold text-sm truncate">{m.displayName}</div>
+                          <span className={`text-xs px-1.5 py-0.5 rounded border ${isExtraConfirmed ? 'text-green-400 bg-green-900/30 border-green-700' : 'text-yellow-400 bg-yellow-900/30 border-yellow-700'}`}>
+                            {isExtraConfirmed ? 'Habilitado' : 'Pendiente'}
+                          </span>
                         </div>
-
-                        {/* Action buttons for uploaded receipts */}
-                        {pStatus === 'uploaded' && (
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => updatePaymentStatus(m, 'confirmed')}
-                              className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
-                            >
-                              Confirmar pago
-                            </button>
-                            <button
-                              onClick={() => updatePaymentStatus(m, 'rejected')}
-                              className="flex-1 text-xs py-2 rounded-lg bg-red-900/50 text-red-400 hover:bg-red-900 border border-red-800 font-bold transition-colors"
-                            >
-                              Rechazar
-                            </button>
-                          </div>
-                        )}
-                        {pStatus === 'rejected' && (
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => updatePaymentStatus(m, 'confirmed')}
-                              className="flex-1 text-xs py-2 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
-                            >
-                              Confirmar pago
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="px-3 pb-3">
-                        <div className="text-gray-500 text-xs italic">No ha enviado comprobante</div>
-                        {pStatus !== 'confirmed' && (
+                        {!isExtraConfirmed ? (
                           <button
-                            onClick={() => updatePaymentStatus(m, 'confirmed')}
-                            className="mt-2 text-xs py-1.5 px-3 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors"
+                            onClick={() => updateExtraPaymentStatus(m, 'confirmed')}
+                            className="text-xs py-1.5 px-3 rounded-lg bg-green-900/50 text-green-400 hover:bg-green-900 border border-green-800 font-bold transition-colors shrink-0"
                           >
-                            Confirmar manualmente
+                            Habilitar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateExtraPaymentStatus(m, 'pending')}
+                            className="text-xs py-1.5 px-3 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-600 transition-colors shrink-0"
+                          >
+                            Revocar
                           </button>
                         )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                    )
+                  })}
+                {visibleMembers.filter(m => (m.paymentStatus || 'pending') === 'confirmed').length === 0 && (
+                  <p className="text-gray-500 text-xs text-center py-4">Ningún jugador ha confirmado el pago inicial aún</p>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1017,6 +1393,10 @@ export default function GroupPage() {
           groupId={groupId}
           memberDocId={myMembership.docId}
           currentStatus={myPaymentStatus}
+          groupName={group?.name}
+          adminIds={group?.adminIds || []}
+          memberName={user?.displayName}
+          paymentAmount={paymentAmount}
           onUploadComplete={() => {
             setShowPaymentModal(false)
             loadMembers()

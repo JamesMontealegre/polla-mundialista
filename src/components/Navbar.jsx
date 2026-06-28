@@ -50,7 +50,7 @@ export default function Navbar() {
                   ⚙️ Admin
                 </Link>
               )}
-              {!isAdmin && <NotificationBell />}
+              <NotificationBell />
               <button
                 onClick={() => setShowProfile(true)}
                 className="flex items-center gap-2 relative hover:opacity-80 transition-opacity"

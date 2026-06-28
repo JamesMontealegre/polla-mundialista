@@ -2,6 +2,7 @@
   "name": "Polla Mundialista 2026",
   "short_name": "Polla 2026",
   "description": "Predicciones del Mundial FIFA 2026",
+  "gcm_sender_id": "103953800507",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#111827",

@@ -90,6 +90,14 @@ export function AuthProvider({ children }) {
     )
     const unsub = onSnapshot(q, (snap) => {
       setUnreadCount(snap.size)
+      // Badge en el icono de la app (Android Chrome PWA, desktop)
+      if ('setAppBadge' in navigator) {
+        if (snap.size > 0) {
+          navigator.setAppBadge(snap.size).catch(() => {})
+        } else {
+          navigator.clearAppBadge().catch(() => {})
+        }
+      }
     }, (err) => {
       console.error('Error escuchando notificaciones:', err)
     })

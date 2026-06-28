@@ -117,11 +117,11 @@ export const MATCHES = [
   { id: 'M029', matchNum: 29, group: 'D', stage: 'group', matchday: 2, team1: 'Estados Unidos', team2: 'Australia', date: '2026-06-19T14:00:00-05:00', venue: 'Lumen Field', city: 'Seattle' },
   { id: 'M030', matchNum: 30, group: 'C', stage: 'group', matchday: 2, team1: 'Escocia', team2: 'Marruecos', date: '2026-06-19T17:00:00-05:00', venue: 'Gillette Stadium', city: 'Foxborough' },
   { id: 'M031', matchNum: 31, group: 'C', stage: 'group', matchday: 2, team1: 'Brasil', team2: 'Haití', date: '2026-06-19T20:00:00-05:00', venue: 'Lincoln Financial Field', city: 'Filadelfia' },
-  { id: 'M032', matchNum: 32, group: 'D', stage: 'group', matchday: 2, team1: 'Turquía', team2: 'Paraguay', date: '2026-06-19T23:00:00-05:00', venue: "Levi's Stadium", city: 'Santa Clara' },
+  { id: 'M032', matchNum: 32, group: 'D', stage: 'group', matchday: 2, team1: 'Turquía', team2: 'Paraguay', date: '2026-06-19T22:00:00-05:00', venue: "Levi's Stadium", city: 'Santa Clara' },
   // Sábado 20 de junio
   { id: 'M033', matchNum: 33, group: 'F', stage: 'group', matchday: 2, team1: 'Países Bajos', team2: 'Suecia', date: '2026-06-20T12:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
   { id: 'M034', matchNum: 34, group: 'E', stage: 'group', matchday: 2, team1: 'Alemania', team2: 'Costa de Marfil', date: '2026-06-20T15:00:00-05:00', venue: 'BMO Field', city: 'Toronto' },
-  { id: 'M035', matchNum: 35, group: 'E', stage: 'group', matchday: 2, team1: 'Ecuador', team2: 'Curazao', date: '2026-06-20T21:00:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
+  { id: 'M035', matchNum: 35, group: 'E', stage: 'group', matchday: 2, team1: 'Ecuador', team2: 'Curazao', date: '2026-06-20T19:00:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
   { id: 'M036', matchNum: 36, group: 'F', stage: 'group', matchday: 2, team1: 'Túnez', team2: 'Japón', date: '2026-06-20T23:00:00-05:00', venue: 'Estadio BBVA', city: 'Monterrey' },
   // Domingo 21 de junio
   { id: 'M037', matchNum: 37, group: 'H', stage: 'group', matchday: 2, team1: 'España', team2: 'Arabia Saudí', date: '2026-06-21T11:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
