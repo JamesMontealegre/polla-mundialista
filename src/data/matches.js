@@ -171,27 +171,27 @@ export const MATCHES = [
 
   // ==================== RONDA DE 32 ====================
   // Domingo 28 de junio
-  { id: 'R32_01', matchNum: 73, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '2° Grupo A vs 2° Grupo B', date: '2026-06-28T14:00:00-05:00', venue: 'SoFi Stadium', city: 'Los Ángeles' },
-  // Lunes 29 de junio
-  { id: 'R32_02', matchNum: 74, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo E vs 3° Grupo A/B/C/D/F', date: '2026-06-29T14:00:00-05:00', venue: 'Gillette Stadium', city: 'Foxborough' },
-  { id: 'R32_03', matchNum: 75, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo F vs 2° Grupo C', date: '2026-06-29T17:00:00-05:00', venue: 'Estadio BBVA', city: 'Monterrey' },
-  { id: 'R32_04', matchNum: 76, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo C vs 2° Grupo F', date: '2026-06-29T20:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
-  // Martes 30 de junio
-  { id: 'R32_05', matchNum: 77, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo I vs 3° Grupo C/D/F/G/H', date: '2026-06-30T14:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
-  { id: 'R32_06', matchNum: 78, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '2° Grupo E vs 2° Grupo I', date: '2026-06-30T17:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
-  { id: 'R32_07', matchNum: 79, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo A vs 3° Grupo C/E/F/H/I', date: '2026-06-30T20:00:00-05:00', venue: 'Estadio Azteca', city: 'Ciudad de México' },
-  // Miércoles 1 de julio
-  { id: 'R32_08', matchNum: 80, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo L vs 3° Grupo E/H/I/J/K', date: '2026-07-01T14:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
-  { id: 'R32_09', matchNum: 81, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo D vs 3° Grupo B/E/F/I/J', date: '2026-07-01T17:00:00-05:00', venue: "Levi's Stadium", city: 'Santa Clara' },
-  { id: 'R32_10', matchNum: 82, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo G vs 3° Grupo A/E/H/I/J', date: '2026-07-01T20:00:00-05:00', venue: 'Lumen Field', city: 'Seattle' },
-  // Jueves 2 de julio
-  { id: 'R32_11', matchNum: 83, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '2° Grupo K vs 2° Grupo L', date: '2026-07-02T14:00:00-05:00', venue: 'BMO Field', city: 'Toronto' },
-  { id: 'R32_12', matchNum: 84, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo H vs 2° Grupo J', date: '2026-07-02T17:00:00-05:00', venue: 'SoFi Stadium', city: 'Los Ángeles' },
-  { id: 'R32_13', matchNum: 85, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo B vs 3° Grupo E/F/G/I/J', date: '2026-07-02T20:00:00-05:00', venue: 'BC Place', city: 'Vancouver' },
-  // Viernes 3 de julio
-  { id: 'R32_14', matchNum: 86, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo J vs 2° Grupo H', date: '2026-07-03T14:00:00-05:00', venue: 'Hard Rock Stadium', city: 'Miami' },
-  { id: 'R32_15', matchNum: 87, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '1° Grupo K vs 3° Grupo D/E/I/J/L', date: '2026-07-03T17:00:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
-  { id: 'R32_16', matchNum: 88, stage: 'r32', team1: 'Por definir', team2: 'Por definir', label: '2° Grupo D vs 2° Grupo G', date: '2026-07-03T20:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
+  { id: 'R32_01', matchNum: 73, stage: 'r32', team1: 'Sudáfrica', team2: 'Canadá', date: '2026-06-28T14:00:00-05:00', venue: 'SoFi Stadium', city: 'Los Ángeles' },
+  // Lunes 29 de junio — hora Colombia: Brasil 12h · Alemania 15:30h · Países Bajos 20h
+  { id: 'R32_02', matchNum: 74, stage: 'r32', team1: 'Alemania', team2: 'Paraguay', date: '2026-06-29T15:30:00-05:00', venue: 'Gillette Stadium', city: 'Foxborough' },
+  { id: 'R32_03', matchNum: 75, stage: 'r32', team1: 'Países Bajos', team2: 'Marruecos', date: '2026-06-29T20:00:00-05:00', venue: 'Estadio BBVA', city: 'Monterrey' },
+  { id: 'R32_04', matchNum: 76, stage: 'r32', team1: 'Brasil', team2: 'Japón', date: '2026-06-29T12:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
+  // Martes 30 de junio — hora Colombia: Costa de Marfil 12h · Francia 16h · México 20h
+  { id: 'R32_05', matchNum: 77, stage: 'r32', team1: 'Francia', team2: 'Suecia', date: '2026-06-30T16:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
+  { id: 'R32_06', matchNum: 78, stage: 'r32', team1: 'Costa de Marfil', team2: 'Noruega', date: '2026-06-30T12:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
+  { id: 'R32_07', matchNum: 79, stage: 'r32', team1: 'México', team2: 'Ecuador', date: '2026-06-30T20:00:00-05:00', venue: 'Estadio Azteca', city: 'Ciudad de México' },
+  // Miércoles 1 de julio — hora Colombia: Inglaterra 11h · Bélgica 15h · Estados Unidos 19h
+  { id: 'R32_08', matchNum: 80, stage: 'r32', team1: 'Inglaterra', team2: 'Rep. Dem. Congo', date: '2026-07-01T11:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
+  { id: 'R32_09', matchNum: 81, stage: 'r32', team1: 'Estados Unidos', team2: 'Bosnia-Herzegovina', date: '2026-07-01T19:00:00-05:00', venue: "Levi's Stadium", city: 'Santa Clara' },
+  { id: 'R32_10', matchNum: 82, stage: 'r32', team1: 'Bélgica', team2: 'Senegal', date: '2026-07-01T15:00:00-05:00', venue: 'Lumen Field', city: 'Seattle' },
+  // Jueves 2 de julio — hora Colombia: España 14h · Portugal 18h · Suiza 22h
+  { id: 'R32_11', matchNum: 83, stage: 'r32', team1: 'Portugal', team2: 'Croacia', date: '2026-07-02T18:00:00-05:00', venue: 'BMO Field', city: 'Toronto' },
+  { id: 'R32_12', matchNum: 84, stage: 'r32', team1: 'España', team2: 'Austria', date: '2026-07-02T14:00:00-05:00', venue: 'SoFi Stadium', city: 'Los Ángeles' },
+  { id: 'R32_13', matchNum: 85, stage: 'r32', team1: 'Suiza', team2: 'Irán', date: '2026-07-02T22:00:00-05:00', venue: 'BC Place', city: 'Vancouver' },
+  // Viernes 3 de julio — hora Colombia: Australia 13h · Argentina 17h · Colombia 20:30h
+  { id: 'R32_14', matchNum: 86, stage: 'r32', team1: 'Argentina', team2: 'Cabo Verde', date: '2026-07-03T17:00:00-05:00', venue: 'Hard Rock Stadium', city: 'Miami' },
+  { id: 'R32_15', matchNum: 87, stage: 'r32', team1: 'Colombia', team2: 'Ghana', date: '2026-07-03T20:30:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
+  { id: 'R32_16', matchNum: 88, stage: 'r32', team1: 'Australia', team2: 'Egipto', date: '2026-07-03T13:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
 
   // ==================== OCTAVOS DE FINAL ====================
   // Sábado 4 de julio
