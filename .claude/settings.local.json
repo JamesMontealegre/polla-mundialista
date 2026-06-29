@@ -15,7 +15,17 @@
       "Bash(node -e \":*)",
       "Bash(npm install --no-save sharp)",
       "Bash(ls -la /Users/jamesmontealegre/Documents/projects/polla-mundialista/public/icon-*.png /Users/jamesmontealegre/Documents/projects/polla-mundialista/public/apple-touch-icon.png)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(git status -u)",
+      "Bash(git status -u --short)",
+      "Bash(git status --porcelain -uall)",
+      "Bash(git add src/pages/GroupPage.jsx)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git pull --rebase)",
+      "Bash(git stash)",
+      "Bash(git stash pop)",
+      "Bash(git add public/version.json .claude/settings.local.json)"
     ]
   }
 }
