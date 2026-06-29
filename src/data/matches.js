@@ -189,9 +189,9 @@ export const MATCHES = [
   { id: 'R32_12', matchNum: 84, stage: 'r32', team1: 'Portugal', team2: 'Croacia', date: '2026-07-02T18:00:00-05:00', venue: 'BMO Field', city: 'Toronto' },
   { id: 'R32_13', matchNum: 85, stage: 'r32', team1: 'Suiza', team2: 'Argelia', date: '2026-07-02T22:00:00-05:00', venue: 'BC Place', city: 'Vancouver' },
   // Viernes 3 de julio — hora Colombia: Australia 13h · Argentina 17h · Colombia 20:30h
-  { id: 'R32_14', matchNum: 86, stage: 'r32', team1: 'Argentina', team2: 'Cabo Verde', date: '2026-07-03T17:00:00-05:00', venue: 'Hard Rock Stadium', city: 'Miami' },
-  { id: 'R32_15', matchNum: 87, stage: 'r32', team1: 'Colombia', team2: 'Ghana', date: '2026-07-03T20:30:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
-  { id: 'R32_16', matchNum: 88, stage: 'r32', team1: 'Australia', team2: 'Egipto', date: '2026-07-03T13:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
+  { id: 'R32_14', matchNum: 86, stage: 'r32', team1: 'Australia', team2: 'Egipto', date: '2026-07-03T13:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
+  { id: 'R32_15', matchNum: 87, stage: 'r32', team1: 'Argentina', team2: 'Cabo Verde', date: '2026-07-03T17:00:00-05:00', venue: 'Hard Rock Stadium', city: 'Miami' },
+  { id: 'R32_16', matchNum: 88, stage: 'r32', team1: 'Colombia', team2: 'Ghana', date: '2026-07-03T20:30:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
 
   // ==================== OCTAVOS DE FINAL ====================
   // Sábado 4 de julio
