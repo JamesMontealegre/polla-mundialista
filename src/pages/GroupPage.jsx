@@ -22,8 +22,8 @@ import { HIDDEN_EMAILS } from '../config/hiddenUsers'
 const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', '3rd', 'final']
 const STAGE_ORDER = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, '3rd': 5, final: 6 }
 
-// Deadline: 28 jun 2026 00:00 Colombia (UTC-5) = 28 jun 05:00 UTC
-const FINAL_PRED_DEADLINE = new Date('2026-06-28T05:00:00Z')
+// Deadline: 4 jul 2026 00:00 Colombia (UTC-5) = 4 jul 05:00 UTC
+const FINAL_PRED_DEADLINE = new Date('2026-07-04T05:00:00Z')
 const THIRD_PLACE_PRED_DEADLINE = FINAL_PRED_DEADLINE
 
 function AdminPaymentAmountEditor({ amount, onSave, label = 'Monto de inscripción' }) {
@@ -970,7 +970,7 @@ export default function GroupPage() {
             <h2 className="text-white font-bold text-lg mb-4">⭐ Puntos extra</h2>
 
             {!isFinalistLocked && (
-              <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} label="Cierra 28 jun · 12:00 AM" />
+              <CountdownBanner deadline={FINAL_PRED_DEADLINE.getTime()} label="Cierra 4 jul · 12:00 AM" />
             )}
 
             {/* No-admin: estado del pago extra (independiente al pago inicial) */}
