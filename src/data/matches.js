@@ -181,13 +181,13 @@ export const MATCHES = [
   { id: 'R32_06', matchNum: 78, stage: 'r32', team1: 'Costa de Marfil', team2: 'Noruega', date: '2026-06-30T16:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
   { id: 'R32_07', matchNum: 79, stage: 'r32', team1: 'México', team2: 'Ecuador', date: '2026-06-30T20:00:00-05:00', venue: 'Estadio Azteca', city: 'Ciudad de México' },
   // Miércoles 1 de julio — hora Colombia: Inglaterra 11h · Bélgica 15h · Estados Unidos 19h
-  { id: 'R32_08', matchNum: 80, stage: 'r32', team1: 'Inglaterra', team2: 'Rep. Dem. Congo', date: '2026-07-01T11:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
-  { id: 'R32_09', matchNum: 81, stage: 'r32', team1: 'Estados Unidos', team2: 'Bosnia-Herzegovina', date: '2026-07-01T19:00:00-05:00', venue: "Levi's Stadium", city: 'Santa Clara' },
-  { id: 'R32_10', matchNum: 82, stage: 'r32', team1: 'Bélgica', team2: 'Senegal', date: '2026-07-01T15:00:00-05:00', venue: 'Lumen Field', city: 'Seattle' },
+  { id: 'R32_08', matchNum: 80, stage: 'r32', team1: 'Bélgica', team2: 'Senegal', date: '2026-07-01T15:00:00-05:00', venue: 'Lumen Field', city: 'Seattle' },
+  { id: 'R32_09', matchNum: 81, stage: 'r32', team1: 'Inglaterra', team2: 'Rep. Dem. Congo', date: '2026-07-01T11:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
+  { id: 'R32_10', matchNum: 82, stage: 'r32', team1: 'Estados Unidos', team2: 'Bosnia-Herzegovina', date: '2026-07-01T19:00:00-05:00', venue: "Levi's Stadium", city: 'Santa Clara' },
   // Jueves 2 de julio — hora Colombia: España 14h · Portugal 18h · Suiza 22h
-  { id: 'R32_11', matchNum: 83, stage: 'r32', team1: 'Portugal', team2: 'Croacia', date: '2026-07-02T18:00:00-05:00', venue: 'BMO Field', city: 'Toronto' },
-  { id: 'R32_12', matchNum: 84, stage: 'r32', team1: 'España', team2: 'Austria', date: '2026-07-02T14:00:00-05:00', venue: 'SoFi Stadium', city: 'Los Ángeles' },
-  { id: 'R32_13', matchNum: 85, stage: 'r32', team1: 'Suiza', team2: 'Irán', date: '2026-07-02T22:00:00-05:00', venue: 'BC Place', city: 'Vancouver' },
+  { id: 'R32_11', matchNum: 83, stage: 'r32', team1: 'España', team2: 'Austria', date: '2026-07-02T14:00:00-05:00', venue: 'SoFi Stadium', city: 'Los Ángeles' },
+  { id: 'R32_12', matchNum: 84, stage: 'r32', team1: 'Portugal', team2: 'Croacia', date: '2026-07-02T18:00:00-05:00', venue: 'BMO Field', city: 'Toronto' },
+  { id: 'R32_13', matchNum: 85, stage: 'r32', team1: 'Suiza', team2: 'Argelia', date: '2026-07-02T22:00:00-05:00', venue: 'BC Place', city: 'Vancouver' },
   // Viernes 3 de julio — hora Colombia: Australia 13h · Argentina 17h · Colombia 20:30h
   { id: 'R32_14', matchNum: 86, stage: 'r32', team1: 'Argentina', team2: 'Cabo Verde', date: '2026-07-03T17:00:00-05:00', venue: 'Hard Rock Stadium', city: 'Miami' },
   { id: 'R32_15', matchNum: 87, stage: 'r32', team1: 'Colombia', team2: 'Ghana', date: '2026-07-03T20:30:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
