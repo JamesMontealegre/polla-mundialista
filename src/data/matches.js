@@ -195,11 +195,11 @@ export const MATCHES = [
 
   // ==================== OCTAVOS DE FINAL ====================
   // Sábado 4 de julio
-  { id: 'R16_01', matchNum: 89, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P74 vs G.P77', date: '2026-07-04T14:00:00-05:00', venue: 'Lincoln Financial Field', city: 'Filadelfia' },
-  { id: 'R16_02', matchNum: 90, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P73 vs G.P75', date: '2026-07-04T18:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
+  { id: 'R16_01', matchNum: 89, stage: 'r16', team1: 'Canadá', team2: 'Marruecos', date: '2026-07-04T12:00:00-05:00', venue: 'Lincoln Financial Field', city: 'Filadelfia' },
+  { id: 'R16_02', matchNum: 90, stage: 'r16', team1: 'Paraguay', team2: 'Francia', date: '2026-07-04T16:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
   // Domingo 5 de julio
-  { id: 'R16_03', matchNum: 91, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P76 vs G.P78', date: '2026-07-05T14:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
-  { id: 'R16_04', matchNum: 92, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P79 vs G.P80', date: '2026-07-05T18:00:00-05:00', venue: 'Estadio Azteca', city: 'Ciudad de México' },
+  { id: 'R16_03', matchNum: 91, stage: 'r16', team1: 'Brasil', team2: 'Noruega', date: '2026-07-05T15:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
+  { id: 'R16_04', matchNum: 92, stage: 'r16', team1: 'México', team2: 'Inglaterra', date: '2026-07-05T19:00:00-05:00', venue: 'Estadio Azteca', city: 'Ciudad de México' },
   // Lunes 6 de julio
   { id: 'R16_05', matchNum: 93, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P83 vs G.P84', date: '2026-07-06T14:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
   { id: 'R16_06', matchNum: 94, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P81 vs G.P82', date: '2026-07-06T18:00:00-05:00', venue: 'Lumen Field', city: 'Seattle' },
