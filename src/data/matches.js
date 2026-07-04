@@ -194,18 +194,18 @@ export const MATCHES = [
   { id: 'R32_16', matchNum: 88, stage: 'r32', team1: 'Colombia', team2: 'Ghana', date: '2026-07-03T20:30:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
 
   // ==================== OCTAVOS DE FINAL ====================
-  // Sábado 4 de julio
-  { id: 'R16_01', matchNum: 89, stage: 'r16', team1: 'Canadá', team2: 'Marruecos', date: '2026-07-04T12:00:00-05:00', venue: 'Lincoln Financial Field', city: 'Filadelfia' },
-  { id: 'R16_02', matchNum: 90, stage: 'r16', team1: 'Paraguay', team2: 'Francia', date: '2026-07-04T16:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
-  // Domingo 5 de julio
-  { id: 'R16_03', matchNum: 91, stage: 'r16', team1: 'Brasil', team2: 'Noruega', date: '2026-07-05T15:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
-  { id: 'R16_04', matchNum: 92, stage: 'r16', team1: 'México', team2: 'Inglaterra', date: '2026-07-05T19:00:00-05:00', venue: 'Estadio Azteca', city: 'Ciudad de México' },
-  // Lunes 6 de julio
-  { id: 'R16_05', matchNum: 93, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P83 vs G.P84', date: '2026-07-06T14:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
-  { id: 'R16_06', matchNum: 94, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P81 vs G.P82', date: '2026-07-06T18:00:00-05:00', venue: 'Lumen Field', city: 'Seattle' },
-  // Martes 7 de julio
-  { id: 'R16_07', matchNum: 95, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P86 vs G.P88', date: '2026-07-07T14:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
-  { id: 'R16_08', matchNum: 96, stage: 'r16', team1: 'Por definir', team2: 'Por definir', label: 'G.P85 vs G.P87', date: '2026-07-07T18:00:00-05:00', venue: 'BC Place', city: 'Vancouver' },
+  // Sábado 4 de julio — hora Colombia: Canadá 12h · Paraguay 16h
+  { id: 'R16_01', matchNum: 89, stage: 'r16', team1: 'Paraguay', team2: 'Francia', label: 'G.P74 vs G.P77', date: '2026-07-04T16:00:00-05:00', venue: 'Lincoln Financial Field', city: 'Filadelfia' },
+  { id: 'R16_02', matchNum: 90, stage: 'r16', team1: 'Canadá', team2: 'Marruecos', label: 'G.P73 vs G.P75', date: '2026-07-04T12:00:00-05:00', venue: 'NRG Stadium', city: 'Houston' },
+  // Domingo 5 de julio — hora Colombia: Brasil 15h · México 19h
+  { id: 'R16_03', matchNum: 91, stage: 'r16', team1: 'Brasil', team2: 'Noruega', label: 'G.P76 vs G.P78', date: '2026-07-05T15:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
+  { id: 'R16_04', matchNum: 92, stage: 'r16', team1: 'México', team2: 'Inglaterra', label: 'G.P79 vs G.P80', date: '2026-07-05T19:00:00-05:00', venue: 'Estadio Azteca', city: 'Ciudad de México' },
+  // Lunes 6 de julio — hora Colombia: Portugal 14h · Estados Unidos 19h
+  { id: 'R16_05', matchNum: 93, stage: 'r16', team1: 'Portugal', team2: 'España', label: 'G.P83 vs G.P84', date: '2026-07-06T14:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
+  { id: 'R16_06', matchNum: 94, stage: 'r16', team1: 'Estados Unidos', team2: 'Bélgica', label: 'G.P81 vs G.P82', date: '2026-07-06T19:00:00-05:00', venue: 'Lumen Field', city: 'Seattle' },
+  // Martes 7 de julio — hora Colombia: Argentina 11h · Suiza 15h
+  { id: 'R16_07', matchNum: 95, stage: 'r16', team1: 'Argentina', team2: 'Egipto', label: 'G.P86 vs G.P88', date: '2026-07-07T11:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
+  { id: 'R16_08', matchNum: 96, stage: 'r16', team1: 'Suiza', team2: 'Colombia', label: 'G.P85 vs G.P87', date: '2026-07-07T15:00:00-05:00', venue: 'BC Place', city: 'Vancouver' },
 
   // ==================== CUARTOS DE FINAL ====================
   // Jueves 9 de julio
