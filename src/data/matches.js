@@ -214,7 +214,7 @@ export const MATCHES = [
   { id: 'QF_02', matchNum: 98, stage: 'qf', team1: 'España', team2: 'Bélgica', label: 'G.P93 vs G.P94', date: '2026-07-10T14:00:00-05:00', venue: 'SoFi Stadium', city: 'Los Ángeles' },
   // Sábado 11 de julio — hora Colombia: Noruega 16h
   { id: 'QF_03', matchNum: 99, stage: 'qf', team1: 'Noruega', team2: 'Inglaterra', label: 'G.P91 vs G.P92', date: '2026-07-11T16:00:00-05:00', venue: 'Hard Rock Stadium', city: 'Miami' },
-  { id: 'QF_04', matchNum: 100, stage: 'qf', team1: 'Por definir', team2: 'Por definir', label: 'G.P95 vs G.P96', date: '2026-07-11T18:00:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
+  { id: 'QF_04', matchNum: 100, stage: 'qf', team1: 'Argentina', team2: 'Suiza', label: 'G.P95 vs G.P96', date: '2026-07-11T18:00:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
 
   // ==================== SEMIFINALES ====================
   // Martes 14 de julio
