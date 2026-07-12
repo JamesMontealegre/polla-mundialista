@@ -217,10 +217,10 @@ export const MATCHES = [
   { id: 'QF_04', matchNum: 100, stage: 'qf', team1: 'Argentina', team2: 'Suiza', label: 'G.P95 vs G.P96', date: '2026-07-11T18:00:00-05:00', venue: 'Arrowhead Stadium', city: 'Kansas City' },
 
   // ==================== SEMIFINALES ====================
-  // Martes 14 de julio
-  { id: 'SF_01', matchNum: 101, stage: 'sf', team1: 'Por definir', team2: 'Por definir', label: 'G.P97 vs G.P98', date: '2026-07-14T14:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
-  // Miércoles 15 de julio
-  { id: 'SF_02', matchNum: 102, stage: 'sf', team1: 'Por definir', team2: 'Por definir', label: 'G.P99 vs G.P100', date: '2026-07-15T14:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
+  // Martes 14 de julio — hora Colombia: Francia 14h
+  { id: 'SF_01', matchNum: 101, stage: 'sf', team1: 'Francia', team2: 'España', label: 'G.P97 vs G.P98', date: '2026-07-14T14:00:00-05:00', venue: 'AT&T Stadium', city: 'Dallas' },
+  // Miércoles 15 de julio — hora Colombia: Inglaterra 14h
+  { id: 'SF_02', matchNum: 102, stage: 'sf', team1: 'Inglaterra', team2: 'Argentina', label: 'G.P99 vs G.P100', date: '2026-07-15T14:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
 
   // ==================== TERCER PUESTO ====================
   // Sábado 18 de julio
