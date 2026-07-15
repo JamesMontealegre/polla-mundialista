@@ -223,12 +223,12 @@ export const MATCHES = [
   { id: 'SF_02', matchNum: 102, stage: 'sf', team1: 'Inglaterra', team2: 'Argentina', label: 'G.P99 vs G.P100', date: '2026-07-15T14:00:00-05:00', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
 
   // ==================== TERCER PUESTO ====================
-  // Sábado 18 de julio
-  { id: '3RD', matchNum: 103, stage: '3rd', team1: 'Por definir', team2: 'Por definir', label: 'P.P101 vs P.P102', date: '2026-07-18T14:00:00-05:00', venue: 'Hard Rock Stadium', city: 'Miami' },
+  // Sábado 18 de julio — hora Colombia: 16h
+  { id: '3RD', matchNum: 103, stage: '3rd', team1: 'Francia', team2: 'Inglaterra', label: 'P.P101 vs P.P102', date: '2026-07-18T16:00:00-05:00', venue: 'Hard Rock Stadium', city: 'Miami' },
 
   // ==================== FINAL ====================
-  // Domingo 19 de julio
-  { id: 'FINAL', matchNum: 104, stage: 'final', team1: 'Por definir', team2: 'Por definir', label: 'G.P101 vs G.P102', date: '2026-07-19T14:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
+  // Domingo 19 de julio — hora Colombia: 14h
+  { id: 'FINAL', matchNum: 104, stage: 'final', team1: 'España', team2: 'Argentina', label: 'G.P101 vs G.P102', date: '2026-07-19T14:00:00-05:00', venue: 'MetLife Stadium', city: 'East Rutherford' },
 ]
 
 export const STAGE_NAMES = {
