@@ -619,11 +619,11 @@ export default function GroupPage() {
   // La Final: deadline y revelacion
   const isFinalistLocked = Date.now() >= FINAL_PRED_DEADLINE.getTime()
   const isThirdPlaceLocked = isFinalistLocked
+  const isFinalistRevealed = MATCHES.some(m => m.stage === 'qf' && hasMatchStarted(m))
   const isThirdPlaceRevealed = isFinalistRevealed
   const isTopScorerRevealed = isFinalistRevealed
   const thirdPlaceMatch = MATCHES.find(m => m.stage === '3rd')
   const thirdPlaceResult = thirdPlaceMatch && matchResults[thirdPlaceMatch.id]?.isFinished ? matchResults[thirdPlaceMatch.id] : null
-  const isFinalistRevealed = MATCHES.some(m => m.stage === 'qf' && hasMatchStarted(m))
   // Revelar predicciones en pestaña Grupo: 28 jun 13:00 COL = 28 jun 18:00 UTC
   const isFinalistVisibleInGroup = Date.now() >= new Date('2026-06-28T18:00:00Z').getTime()
   // Puntos extra: revelados manualmente por admin; botón habilitado cuando la final termina
