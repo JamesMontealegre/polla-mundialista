@@ -128,9 +128,9 @@ export default function TopScorerPredictionCard({
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">{FLAGS[prediction.team] || '🏳️'}</span>
               <div>
-                <div className="text-white font-semibold">{prediction.team}</div>
+                <div className="text-white font-semibold">{FLAGS[prediction.team] || '🏳️'} - #{prediction.jerseyNumber}</div>
                 <div className="text-gray-400 text-sm">
-                  Camiseta #{prediction.jerseyNumber} · {prediction.goals} goles
+                  {prediction.team} · {prediction.goals} goles
                 </div>
               </div>
             </div>
@@ -189,7 +189,7 @@ export default function TopScorerPredictionCard({
                     </div>
                     {pred ? (
                       <div className="text-gray-400 text-xs mt-0.5">
-                        {FLAGS[pred.team] || '🏳️'} {pred.team} · #{pred.jerseyNumber} · {pred.goals} goles
+                        {FLAGS[pred.team] || '🏳️'} - #{pred.jerseyNumber} · {pred.goals} goles
                       </div>
                     ) : (
                       <span className="text-gray-500 text-xs">No predijo</span>

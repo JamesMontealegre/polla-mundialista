@@ -619,8 +619,8 @@ export default function GroupPage() {
   // La Final: deadline y revelacion
   const isFinalistLocked = Date.now() >= FINAL_PRED_DEADLINE.getTime()
   const isThirdPlaceLocked = isFinalistLocked
-  const isThirdPlaceRevealed = MATCHES.some(m => m.stage === 'sf' && hasMatchStarted(m))
-  const isTopScorerRevealed = isThirdPlaceRevealed
+  const isThirdPlaceRevealed = isFinalistRevealed
+  const isTopScorerRevealed = isFinalistRevealed
   const thirdPlaceMatch = MATCHES.find(m => m.stage === '3rd')
   const thirdPlaceResult = thirdPlaceMatch && matchResults[thirdPlaceMatch.id]?.isFinished ? matchResults[thirdPlaceMatch.id] : null
   const isFinalistRevealed = MATCHES.some(m => m.stage === 'qf' && hasMatchStarted(m))
@@ -644,11 +644,10 @@ export default function GroupPage() {
 
   // Cuando hay partidos en curso, colapsar las otras secciones
   useEffect(() => {
-    if (hasAnyLive) {
-      setExpandedSections({ live: true, upcoming: false, played: false })
-    } else {
-      setExpandedSections({ live: true, upcoming: true, played: false })
-    }
+    setExpandedSections(prev => hasAnyLive
+      ? { ...prev, live: true, upcoming: false, played: false }
+      : { ...prev, live: true, upcoming: true, played: false }
+    )
   }, [hasAnyLive])
 
   if (loading) {
