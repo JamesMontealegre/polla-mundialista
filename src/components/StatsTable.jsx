@@ -1,4 +1,4 @@
-export default function StatsTable({ scores, currentUserId, isPaid = true }) {
+export default function StatsTable({ scores, currentUserId, isPaid = true, extrasRevealed = false }) {
   if (!scores || scores.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -19,14 +19,14 @@ export default function StatsTable({ scores, currentUserId, isPaid = true }) {
     return paid(a) - paid(b)
   })
 
-  const showFinalist = scores.some(s => s.finalistBonus != null && s.finalistBonus > 0)
+  const showExtras = extrasRevealed || scores.some(s => (s.finalistBonus ?? 0) > 0)
 
   const columns = [
     { key: 'correctWinners', label: 'PG', title: 'Partidos ganados', color: 'text-white' },
     { key: 'correctScores', label: 'PE', title: 'Partidos exactos', color: 'text-green-400' },
     { key: 'noParticipation', label: 'NP', title: 'No participación', color: 'text-red-400' },
     { key: 'anticipation', label: 'AN', title: 'Anticipación (primer predictor correcto)', color: 'text-blue-400' },
-    ...(showFinalist ? [{ key: 'finalistBonus', label: 'F', title: 'Bonus finalistas (+15)', color: 'text-purple-400' }] : []),
+    ...(showExtras ? [{ key: 'finalistBonus', label: 'E', title: 'Puntos extra (final + tercer puesto + goleador)', color: 'text-purple-400' }] : []),
     { key: 'totalPoints', label: 'P', title: 'Puntos totales', color: 'text-wc-gold font-bold' },
   ]
 
@@ -108,7 +108,7 @@ export default function StatsTable({ scores, currentUserId, isPaid = true }) {
         <span><span className="text-green-400">PE</span> Exactos</span>
         <span><span className="text-red-400">NP</span> Sin participar</span>
         <span><span className="text-blue-400">AN</span> Anticipación</span>
-        {showFinalist && <span><span className="text-purple-400">F</span> Finalistas</span>}
+        {showExtras && <span><span className="text-purple-400">E</span> Extras</span>}
         <span><span className="text-wc-gold">P</span> Puntos</span>
       </div>
     </div>
